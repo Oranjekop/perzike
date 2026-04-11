@@ -4,7 +4,10 @@ import { readFileSync, writeFileSync } from 'fs'
 const pkg = readFileSync('package.json', 'utf-8')
 let changelog = readFileSync('changelog.md', 'utf-8')
 const { version } = JSON.parse(pkg)
-const downloadUrl = `https://github.com/Perzikkop/perzike/releases/download/${version}`
+const refTag = process.env.RELEASE_TAG || process.env.GITHUB_REF_NAME
+const releaseTag =
+  refTag === version || refTag === `v${version}` ? refTag : version
+const downloadUrl = `https://github.com/Perzikkop/perzike/releases/download/${releaseTag}`
 const latest = {
   version,
   changelog

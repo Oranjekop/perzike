@@ -83,22 +83,38 @@ jobs:
           GIT_COMMIT_HASH=$(git rev-parse --short HEAD)
           VERSION=$(jq -r '.version' package.json)
 
-          if [ "${{ github.event.inputs.version }}" == "" ]; then
-            BASE_VERSION=$(echo $VERSION | awk -F. '{print $1"."$2"."$3+1}')
-            VERSION_PREFIX=${VERSION_PREFIX:-beta}
-            RELEASE_VERSION="${BASE_VERSION}-${VERSION_PREFIX}-${GIT_COMMIT_HASH}"
-          else
+          if [ -n "${{ github.event.inputs.version }}" ]; then
             INPUT_VERSION="${{ github.event.inputs.version }}"
             CLEAN_VERSION=$(echo "$INPUT_VERSION" | sed 's/^v//')
+
             if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
               echo "Invalid version format: $INPUT_VERSION"
               exit 1
             fi
+
             if [[ "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
               RELEASE_VERSION="${CLEAN_VERSION}.0"
             else
               RELEASE_VERSION="$CLEAN_VERSION"
             fi
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            INPUT_VERSION="${GITHUB_REF_NAME}"
+            CLEAN_VERSION=$(echo "$INPUT_VERSION" | sed 's/^v//')
+
+            if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+              echo "Invalid version format: $INPUT_VERSION"
+              exit 1
+            fi
+
+            if [[ "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
+              RELEASE_VERSION="${CLEAN_VERSION}.0"
+            else
+              RELEASE_VERSION="$CLEAN_VERSION"
+            fi
+          else
+            BASE_VERSION=$(echo $VERSION | awk -F. '{print $1"."$2"."$3+1}')
+            VERSION_PREFIX=${VERSION_PREFIX:-beta}
+            RELEASE_VERSION="${BASE_VERSION}-${VERSION_PREFIX}-${GIT_COMMIT_HASH}"
           fi
 
           jq --arg version "$RELEASE_VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
