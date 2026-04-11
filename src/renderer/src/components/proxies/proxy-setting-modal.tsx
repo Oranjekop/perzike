@@ -32,6 +32,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
     proxyDisplayLayout = 'double',
     autoCloseConnection = true,
     closeMode = 'all',
+    showGlobalByMode = false,
     delayTestUrl,
     delayTestUrlScope = 'group',
     delayTestConcurrency,
@@ -155,6 +156,15 @@ const ProxySettingModal: React.FC<Props> = (props) => {
               </Tabs>
             </SettingItem>
           )}
+          <SettingItem title="按模式显示 GLOBAL" divider>
+            <Switch
+              size="sm"
+              isSelected={showGlobalByMode}
+              onValueChange={(v) => {
+                patchAppConfig({ showGlobalByMode: v })
+              }}
+            />
+          </SettingItem>
           <SettingItem title="延迟测试地址" divider>
             <Input
               size="sm"

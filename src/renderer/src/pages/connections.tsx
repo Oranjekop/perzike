@@ -4,7 +4,6 @@ import React, { Key, useCallback, useEffect, useMemo, useRef, useState } from 'r
 import { Badge, Button, Divider, Input, Select, SelectItem, Tab, Tabs } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import ConnectionItem from '@renderer/components/connections/connection-item'
-import { Virtuoso } from 'react-virtuoso'
 import dayjs from 'dayjs'
 import ConnectionDetailModal from '@renderer/components/connections/connection-detail-modal'
 import ConnectionSettingModal from '@renderer/components/connections/connection-setting-modal'
@@ -626,7 +625,9 @@ const Connections: React.FC = () => {
         <Divider />
       </div>
       <div className="h-[calc(100vh-100px)] mt-px">
-        <Virtuoso data={filteredConnections} itemContent={renderConnectionItem} />
+        <div className="h-full overflow-y-auto">
+          {filteredConnections.map((connection, i) => renderConnectionItem(i, connection))}
+        </div>
       </div>
     </BasePage>
   )

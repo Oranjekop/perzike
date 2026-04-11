@@ -19,6 +19,7 @@ export const defaultConfig: AppConfig = {
   autoCheckUpdate: false,
   autoCloseConnection: true,
   closeMode: 'all',
+  showGlobalByMode: false,
   controlDns: true,
   controlSniff: true,
   hosts: [],

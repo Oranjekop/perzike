@@ -5,6 +5,7 @@ import { useGroups } from './hooks/use-groups'
 import { mihomoChangeProxy, mihomoGroupDelay, mihomoCloseConnections } from './utils/ipc'
 import { useAppConfig } from './hooks/use-app-config'
 import { calcTraffic } from './utils/calc'
+import MihomoIcon from './components/base/mihomo-icon'
 
 interface TrafficData {
   up: number
@@ -98,8 +99,10 @@ const TrayMenuApp: React.FC = () => {
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-content1 rounded-xl border border-divider">
       <div className="flex items-center justify-between px-3 py-2 border-b border-divider bg-content2/50">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-lg shadow-primary/50" />
-          <span className="text-sm font-semibold">Sparkle</span>
+          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/12 text-primary">
+            <MihomoIcon className="h-4 w-4" />
+          </div>
+          <span className="text-sm font-semibold">Perzike</span>
         </div>
         <div className="flex items-center gap-1">
           <Button

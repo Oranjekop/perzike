@@ -68,7 +68,7 @@ const SubStoreCard: React.FC<Props> = (props) => {
         {...attributes}
         {...listeners}
         fullWidth
-        className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
+        className={`${match ? 'bg-primary' : 'hover:bg-content2'} transition-colors ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
       >
         <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
           <div className="flex justify-between">

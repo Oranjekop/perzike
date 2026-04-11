@@ -7,7 +7,6 @@ import GeneralConfig from '@renderer/components/settings/general-config'
 import AdvancedSettings from '@renderer/components/settings/advanced-settings'
 import Actions from '@renderer/components/settings/actions'
 import ShortcutConfig from '@renderer/components/settings/shortcut-config'
-import { FaTelegramPlane } from 'react-icons/fa'
 import SiderConfig from '@renderer/components/settings/sider-config'
 import SubStoreConfig from '@renderer/components/settings/substore-config'
 import AppearanceConfig from '@renderer/components/settings/appearance-confis'
@@ -37,22 +36,10 @@ const Settings: React.FC = () => {
             className="app-nodrag"
             title="GitHub 仓库"
             onPress={() => {
-              window.open('https://github.com/xishang0128/sparkle')
+              window.open('https://github.com/Perzikkop/perzike')
             }}
           >
             <IoLogoGithub className="text-lg" />
-          </Button>
-          <Button
-            isIconOnly
-            size="sm"
-            variant="light"
-            className="app-nodrag"
-            title="Telegram 频道"
-            onPress={() => {
-              window.open('https://t.me/atri0828')
-            }}
-          >
-            <FaTelegramPlane className="text-lg" />
           </Button>
         </>
       }

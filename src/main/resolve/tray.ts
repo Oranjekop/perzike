@@ -32,7 +32,7 @@ import { dataDir, logDir, mihomoCoreDir, mihomoWorkDir } from '../utils/dirs'
 import { triggerSysProxy } from '../sys/sysproxy'
 import { quitWithoutCore, restartCore } from '../core/manager'
 import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
-import { is } from '@electron-toolkit/utils'
+import { is } from '../utils/electron-utils'
 import { join } from 'path'
 import { applyTheme } from './theme'
 
@@ -455,7 +455,7 @@ export async function createTray(): Promise<void> {
   if (process.platform === 'win32') {
     tray = new Tray(icoIcon)
   }
-  tray?.setToolTip('Sparkle')
+  tray?.setToolTip('Perzike')
   tray?.setIgnoreDoubleClickEvents(true)
   if (process.platform === 'darwin') {
     if (!useDockIcon && app.dock) {

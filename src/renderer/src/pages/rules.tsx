@@ -1,6 +1,5 @@
 import BasePage from '@renderer/components/base/base-page'
 import RuleItem from '@renderer/components/rules/rule-item'
-import { Virtuoso } from 'react-virtuoso'
 import { useMemo, useState } from 'react'
 import { Divider, Input } from '@heroui/react'
 import { useRules } from '@renderer/hooks/use-rules'
@@ -37,10 +36,11 @@ const Rules: React.FC = () => {
         <Divider />
       </div>
       <div className="h-[calc(100vh-100px)] mt-px">
-        <Virtuoso
-          data={filteredRules}
-          itemContent={(i, rule) => <RuleItem index={i} rule={rule} />}
-        />
+        <div className="h-full overflow-y-auto">
+          {filteredRules.map((rule, i) => (
+            <RuleItem key={`${rule.type}-${rule.payload}-${i}`} index={i} rule={rule} />
+          ))}
+        </div>
       </div>
     </BasePage>
   )

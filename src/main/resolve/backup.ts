@@ -19,7 +19,7 @@ export async function webdavBackup(): Promise<boolean> {
     webdavUrl = '',
     webdavUsername = '',
     webdavPassword = '',
-    webdavDir = 'sparkle'
+    webdavDir = 'perzike'
   } = await getAppConfig()
   const zip = new AdmZip()
 
@@ -53,7 +53,7 @@ export async function webdavRestore(filename: string): Promise<void> {
     webdavUrl = '',
     webdavUsername = '',
     webdavPassword = '',
-    webdavDir = 'sparkle'
+    webdavDir = 'perzike'
   } = await getAppConfig()
 
   const client = createClient(webdavUrl, {
@@ -71,7 +71,7 @@ export async function listWebdavBackups(): Promise<string[]> {
     webdavUrl = '',
     webdavUsername = '',
     webdavPassword = '',
-    webdavDir = 'sparkle'
+    webdavDir = 'perzike'
   } = await getAppConfig()
 
   const client = createClient(webdavUrl, {
@@ -88,7 +88,7 @@ export async function webdavDelete(filename: string): Promise<void> {
     webdavUrl = '',
     webdavUsername = '',
     webdavPassword = '',
-    webdavDir = 'sparkle'
+    webdavDir = 'perzike'
   } = await getAppConfig()
 
   const client = createClient(webdavUrl, {

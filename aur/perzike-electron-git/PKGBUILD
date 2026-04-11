@@ -1,14 +1,14 @@
-pkgname=sparkle-electron-git
+pkgname=perzike-electron-git
 _pkgname=${pkgname%-electron-git}
 pkgver=r737.e4a7e67
 pkgrel=1
 pkgdesc="Another Mihomo GUI."
 arch=('x86_64' 'aarch64')
-url="https://github.com/xishang0128/sparkle"
+url="https://github.com/Perzikkop/perzike"
 license=('GPL3')
 conflicts=("$_pkgname" "$_pkgname-git" "$_pkgname-bin" "$_pkgname-electron" "$_pkgname-electron-bin")
 depends=('electron' 'alsa-lib' 'gtk3' 'libnotify' 'nss' 'libxss' 'libxtst' 'xdg-utils' 'at-spi2-core' 'util-linux-libs' 'libsecret')
-optdepends=('libappindicator-gtk3: Allow sparkle to extend a menu via Ayatana indicators in Unity, KDE or Systray (GTK+ 3 library).')
+optdepends=('libappindicator-gtk3: Allow perzike to extend a menu via Ayatana indicators in Unity, KDE or Systray (GTK+ 3 library).')
 makedepends=('nodejs' 'pnpm' 'libxcrypt-compat' 'asar')
 install=$_pkgname.install
 source=(
@@ -33,7 +33,7 @@ pkgver() {
 
 prepare(){
     cd $srcdir/${_pkgname}
-    sed -i "s/productName: Sparkle/productName: sparkle/" electron-builder.yml
+    sed -i "s/productName: Perzike/productName: perzike/" electron-builder.yml
     pnpm install
 }
 
@@ -43,15 +43,15 @@ build(){
 }
 
 package() {
-    asar extract $srcdir/${_pkgname}/dist/linux-unpacked/resources/app.asar ${pkgdir}/opt/sparkle
-    cp -r $srcdir/${_pkgname}/extra/sidecar ${pkgdir}/opt/sparkle/resources/
-    cp -r $srcdir/${_pkgname}/extra/files ${pkgdir}/opt/sparkle/resources/
-    chmod +x ${pkgdir}/opt/sparkle/resources/files/sparkle-service
-    chmod +sx ${pkgdir}/opt/sparkle/resources/sidecar/mihomo
-    chmod +sx ${pkgdir}/opt/sparkle/resources/sidecar/mihomo-alpha
+    asar extract $srcdir/${_pkgname}/dist/linux-unpacked/resources/app.asar ${pkgdir}/opt/perzike
+    cp -r $srcdir/${_pkgname}/extra/sidecar ${pkgdir}/opt/perzike/resources/
+    cp -r $srcdir/${_pkgname}/extra/files ${pkgdir}/opt/perzike/resources/
+    chmod +x ${pkgdir}/opt/perzike/resources/files/perzike-service
+    chmod +sx ${pkgdir}/opt/perzike/resources/sidecar/mihomo
+    chmod +sx ${pkgdir}/opt/perzike/resources/sidecar/mihomo-alpha
     install -Dm755 "${_pkgname}.sh" "${pkgdir}/usr/bin/${_pkgname}"
     install -Dm644 "${_pkgname}.desktop" "${pkgdir}/usr/share/applications/${_pkgname}.desktop"
-    install -Dm644 "${pkgdir}/opt/sparkle/resources/icon.png" "${pkgdir}/usr/share/icons/hicolor/512x512/apps/${_pkgname}.png"
+    install -Dm644 "${pkgdir}/opt/perzike/resources/icon.png" "${pkgdir}/usr/share/icons/hicolor/512x512/apps/${_pkgname}.png"
 
     chown -R root:root ${pkgdir}
 }

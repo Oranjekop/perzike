@@ -1,5 +1,5 @@
-appId: sparkle.app
-productName: Sparkle
+appId: perzike.app
+productName: Perzike
 directories:
   buildResources: build
 files:
@@ -19,11 +19,11 @@ extraResources:
   - from: './extra/'
     to: ''
 protocols:
-  name: 'Sparkle URI Scheme'
+  name: 'Perzike URI Scheme'
   schemes:
     - 'clash'
     - 'mihomo'
-    - 'sparkle'
+    - 'perzike'
 win:
   target:
     - nsis
@@ -56,13 +56,13 @@ pkg:
 linux:
   desktop:
     entry:
-      Name: Sparkle
-      MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo;x-scheme-handler/sparkle'
+      Name: Perzike
+      MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo;x-scheme-handler/perzike'
   target:
     - deb
     - rpm
     - pacman
-  maintainer: xishang0128 <xishang02@gmail.com>
+  maintainer: Perzikkop <xishang02@gmail.com>
   category: Utility
   artifactName: ${name}-linux-${version}-${arch}.${ext}
 deb:

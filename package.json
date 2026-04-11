@@ -1,13 +1,13 @@
 {
-  "name": "sparkle",
-  "version": "1.26.3",
-  "description": "Sparkle",
+  "name": "perzike",
+  "version": "26.4.0",
+  "description": "Perzike",
   "main": "./out/main/index.js",
   "author": {
-    "name": "xishang0128",
+    "name": "Perzikkop",
     "email": "xishang02@gmail.com"
   },
-  "homepage": "https://github.com/xishang0128/sparkle",
+  "homepage": "https://github.com/Perzikkop/perzike",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",

@@ -278,7 +278,7 @@ const resolveEnableLoopback = () =>
     file: 'enableLoopback.exe',
     downloadURL: `https://github.com/Kuingsmile/uwp-tool/releases/download/latest/enableLoopback.exe`
   })
-const resolveSparkleService = () => {
+const resolvePerzikeService = () => {
   const map = {
     'win32-x64': 'sparkle-service-windows-amd64-v3',
     'win32-ia32': 'sparkle-service-windows-386',
@@ -296,14 +296,14 @@ const resolveSparkleService = () => {
   const ext = platform == 'win32' ? '.exe' : ''
 
   return resolveResource({
-    file: `sparkle-service${ext}`,
+    file: `perzike-service${ext}`,
     downloadURL: `https://github.com/xishang0128/sparkle-service/releases/download/pre-release/${base}${ext}`,
     needExecutable: true
   })
 }
 const resolveRunner = () =>
   resolveResource({
-    file: 'sparkle-run.exe',
+    file: 'perzike-run.exe',
     downloadURL: `https://github.com/xishang0128/sparkle-run/releases/download/${arch}/sparkle-run.exe`
   })
 
@@ -426,8 +426,8 @@ const tasks = [
     winOnly: true
   },
   {
-    name: 'sparkle-service',
-    func: resolveSparkleService,
+    name: 'perzike-service',
+    func: resolvePerzikeService,
     retry: 5
   },
   {

@@ -2,7 +2,6 @@ import BasePage from '@renderer/components/base/base-page'
 import LogItem from '@renderer/components/logs/log-item'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Divider, Input } from '@heroui/react'
-import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import { IoLocationSharp } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 
@@ -39,7 +38,7 @@ const Logs: React.FC = () => {
   const [filter, setFilter] = useState('')
   const [trace, setTrace] = useState(true)
 
-  const virtuosoRef = useRef<VirtuosoHandle>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const filteredLogs = useMemo(() => {
     if (filter === '') return logs
     return logs.filter((log) => {
@@ -49,11 +48,9 @@ const Logs: React.FC = () => {
 
   useEffect(() => {
     if (!trace) return
-    virtuosoRef.current?.scrollToIndex({
-      index: filteredLogs.length - 1,
-      behavior: 'smooth',
-      align: 'end',
-      offset: 0
+    listRef.current?.scrollTo({
+      top: listRef.current.scrollHeight,
+      behavior: 'smooth'
     })
   }, [filteredLogs, trace])
 
@@ -106,24 +103,16 @@ const Logs: React.FC = () => {
         </div>
         <Divider />
       </div>
-      <div className="h-[calc(100vh-100px)] mt-px">
-        <Virtuoso
-          ref={virtuosoRef}
-          data={filteredLogs}
-          initialTopMostItemIndex={filteredLogs.length - 1}
-          followOutput={trace}
-          itemContent={(i, log) => {
-            return (
-              <LogItem
-                index={i}
-                key={log.payload + i}
-                time={log.time}
-                type={log.type}
-                payload={log.payload}
-              />
-            )
-          }}
-        />
+      <div ref={listRef} className="h-[calc(100vh-100px)] mt-px overflow-y-auto">
+        {filteredLogs.map((log, i) => (
+          <LogItem
+            index={i}
+            key={log.payload + i}
+            time={log.time}
+            type={log.type}
+            payload={log.payload}
+          />
+        ))}
       </div>
     </BasePage>
   )

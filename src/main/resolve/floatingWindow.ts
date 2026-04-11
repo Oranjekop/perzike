@@ -1,4 +1,4 @@
-import { is } from '@electron-toolkit/utils'
+import { is } from '../utils/electron-utils'
 import { BrowserWindow, ipcMain } from 'electron'
 import windowStateKeeper from 'electron-window-state'
 import { join } from 'path'

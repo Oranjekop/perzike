@@ -30,7 +30,7 @@ const ErrorFallback = ({ error }: FallbackProps): JSX.Element => {
         size="sm"
         color="primary"
         variant="flat"
-        onPress={() => open('https://github.com/xishang0128/sparkle/issues/new/choose')}
+        onPress={() => open('https://github.com/Perzikkop/perzike/issues/new/choose')}
       >
         GitHub
       </Button> */}

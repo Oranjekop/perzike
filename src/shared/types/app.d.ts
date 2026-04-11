@@ -81,6 +81,7 @@ interface AppConfig {
   silentStart: boolean
   autoCloseConnection: boolean
   closeMode: 'all' | 'group'
+  showGlobalByMode?: boolean
   sysProxy: ISysProxyConfig
   maxLogDays: number
   userAgent?: string

@@ -1,13 +1,13 @@
-pkgname=sparkle
+pkgname=perzike
 pkgver=1.6.2
 pkgrel=1
 pkgdesc="Another Mihomo GUI."
 arch=('x86_64' 'aarch64')
-url="https://github.com/xishang0128/sparkle"
+url="https://github.com/Perzikkop/perzike"
 license=('GPL3')
 conflicts=("$pkgname-git" "$pkgname-bin" "$pkgname-electron" "$pkgname-electron-bin" "$_pkgname-electron-git")
 depends=('alsa-lib' 'gtk3' 'libnotify' 'nss' 'libxss' 'libxtst' 'xdg-utils' 'at-spi2-core' 'util-linux-libs' 'libsecret')
-optdepends=('libappindicator-gtk3: Allow sparkle to extend a menu via Ayatana indicators in Unity, KDE or Systray (GTK+ 3 library).')
+optdepends=('libappindicator-gtk3: Allow perzike to extend a menu via Ayatana indicators in Unity, KDE or Systray (GTK+ 3 library).')
 makedepends=('nodejs' 'pnpm' 'libxcrypt-compat')
 install=$pkgname.install
 source=(
@@ -20,7 +20,7 @@ options=('!lto')
 
 prepare(){
     cd $srcdir/${pkgname}-${pkgver}
-    sed -i "s/productName: Sparkle/productName: sparkle/" electron-builder.yml
+    sed -i "s/productName: Perzike/productName: perzike/" electron-builder.yml
     pnpm install
 }
 
@@ -31,14 +31,14 @@ build(){
 
 package() {
 	cd $srcdir/${pkgname}-${pkgver}/dist
-    bsdtar -xf sparkle-linux-${pkgver}*.deb
+    bsdtar -xf perzike-linux-${pkgver}*.deb
     bsdtar -xf data.tar.xz -C "${pkgdir}/"
-    chmod +x ${pkgdir}/opt/sparkle/sparkle
-    chmod +x ${pkgdir}/opt/sparkle/resources/files/sparkle-service
-    chmod +sx ${pkgdir}/opt/sparkle/resources/sidecar/mihomo
-    chmod +sx ${pkgdir}/opt/sparkle/resources/sidecar/mihomo-alpha
+    chmod +x ${pkgdir}/opt/perzike/perzike
+    chmod +x ${pkgdir}/opt/perzike/resources/files/perzike-service
+    chmod +sx ${pkgdir}/opt/perzike/resources/sidecar/mihomo
+    chmod +sx ${pkgdir}/opt/perzike/resources/sidecar/mihomo-alpha
     install -Dm755 "${srcdir}/../${pkgname}.sh" "${pkgdir}/usr/bin/${pkgname}"
-    sed -i '3s!/opt/sparkle/sparkle!sparkle!' "${pkgdir}/usr/share/applications/${pkgname}.desktop"
+    sed -i '3s!/opt/perzike/perzike!perzike!' "${pkgdir}/usr/share/applications/${pkgname}.desktop"
 
     chown -R root:root ${pkgdir}
 }

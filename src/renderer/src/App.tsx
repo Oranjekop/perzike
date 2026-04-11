@@ -289,7 +289,7 @@ const App: React.FC = () => {
     >
       {showQuitConfirm && (
         <ConfirmModal
-          title="确定要退出 Sparkle 吗？"
+          title="确定要退出 Perzike 吗？"
           description={
             <div>
               <p></p>
@@ -400,9 +400,9 @@ const App: React.FC = () => {
             <div
               className={`flex justify-between p-2 ${!useWindowFrame && platform === 'darwin' ? 'ml-15' : ''}`}
             >
-              <div className="flex ml-1">
-                <h3 className="text-lg font-bold leading-8">Sparkle</h3>
-              </div>
+            <div className="flex ml-1 items-center gap-2">
+              <h3 className="text-lg font-bold leading-8">Perzike</h3>
+            </div>
               {latest && latest.version && <UpdaterButton latest={latest} />}
               <Button
                 size="sm"

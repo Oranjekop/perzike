@@ -10,7 +10,7 @@ on:
     branches:
       - master
     tags:
-      - v*
+      - '*'
     paths-ignore:
       - 'README.md'
       - '.github/ISSUE_TEMPLATE/**'
@@ -72,7 +72,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup pnpm
         run: npm install -g pnpm
@@ -90,11 +90,15 @@ jobs:
           else
             INPUT_VERSION="${{ github.event.inputs.version }}"
             CLEAN_VERSION=$(echo "$INPUT_VERSION" | sed 's/^v//')
-            if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
               echo "Invalid version format: $INPUT_VERSION"
               exit 1
             fi
-            RELEASE_VERSION="$CLEAN_VERSION"
+            if [[ "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
+              RELEASE_VERSION="${CLEAN_VERSION}.0"
+            else
+              RELEASE_VERSION="$CLEAN_VERSION"
+            fi
           fi
 
           jq --arg version "$RELEASE_VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
@@ -102,7 +106,7 @@ jobs:
       - name: Keep product name lowercase on Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sed -i "s/productName: Sparkle/productName: sparkle/" electron-builder.yml
+          sed -i "s/productName: Perzike/productName: perzike/" electron-builder.yml
 
       - name: Install Build Tools
         if: matrix.os == 'ubuntu-latest' && matrix.format == 'pacman'
@@ -171,13 +175,13 @@ jobs:
         run: SKIP_CHANGELOG=1 pnpm updater
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
           path: |
-            dist/sparkle*
-            !dist/sparkle.app.plist
-            !dist/sparkle*blockmap*
+            dist/perzike*
+            !dist/perzike.app.plist
+            !dist/perzike*blockmap*
             latest.yml
             changelog.md
 
@@ -186,10 +190,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           path: bin/
           merge-multiple: true
@@ -220,15 +224,42 @@ jobs:
           prerelease: true
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.version != '')
+    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.version != '')
     needs: [build]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: '0'
           fetch-tags: 'true'
+
+      - name: Resolve Release Meta
+        id: release_meta
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            RAW_TAG="${{ github.event.inputs.version }}"
+          else
+            RAW_TAG="${GITHUB_REF_NAME}"
+          fi
+
+          TAG_NAME=$(echo "$RAW_TAG" | sed 's#^refs/tags/##')
+          CLEAN_VERSION=$(echo "$TAG_NAME" | sed 's/^v//')
+
+          if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "Invalid version format: $TAG_NAME"
+            exit 1
+          fi
+
+          if [[ "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            PACKAGE_VERSION="${CLEAN_VERSION}.0"
+          else
+            PACKAGE_VERSION="$CLEAN_VERSION"
+          fi
+
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
 
       - name: Generate Changelog
         env:
@@ -264,19 +295,15 @@ jobs:
 
       - name: Update Version
         run: |
-          INPUT_VERSION="${{ github.event.inputs.version }}"
-          CLEAN_VERSION=$(echo "$INPUT_VERSION" | sed 's/^v//')
-          if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid version format: $INPUT_VERSION"
-            exit 1
-          fi
-          jq --arg version "$CLEAN_VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
+          jq --arg version "${{ steps.release_meta.outputs.package_version }}" '.version = $version' package.json > tmp.json && mv tmp.json package.json
 
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git add package.json
-          git commit -m "update version to $CLEAN_VERSION"
-          git push
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git config --global user.name "github-actions[bot]"
+            git add package.json
+            git commit -m "update version to ${{ steps.release_meta.outputs.package_version }}" || true
+            git push || true
+          fi
 
       - name: Install Dependencies and Updater
         run: |
@@ -284,7 +311,7 @@ jobs:
           SKIP_PREPARE=1 pnpm install
           pnpm updater
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v4
         with:
           path: bin/
           merge-multiple: true
@@ -293,14 +320,14 @@ jobs:
         uses: 8Mi-Tech/delete-release-assets-action@main
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref }}
+          tag: ${{ steps.release_meta.outputs.tag_name }}
           deleteOnlyFromDrafts: false
 
       - name: Publish Release
         if: success()
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref }}
+          tag_name: ${{ steps.release_meta.outputs.tag_name }}
           body_path: changelog.md
           files: |
             latest.yml
