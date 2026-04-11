@@ -6,9 +6,6 @@
   <a href="https://github.com/Perzikkop/perzike/releases">
     <img src="https://img.shields.io/github/release/Perzikkop/perzike/all.svg">
   </a>
-  <a href="https://t.me/+y7rcYjEKIiI1NzZl">
-    <img src="https://img.shields.io/badge/Telegram-Group-blue?logo=telegram">
-  </a>
 </p>
 
 ## 特性

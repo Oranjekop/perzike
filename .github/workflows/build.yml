@@ -223,55 +223,11 @@ jobs:
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Generate Changelog
-        env:
-          API_URL: ${{ secrets.API_URL }}
-          API_KEY: ${{ secrets.API_KEY }}
+      - name: Prepare Changelog
         run: |
-          CURRENT_TAG="${{ steps.release_meta.outputs.tag_name }}"
-          PREVIOUS_TAG=$(git tag --sort=-v:refname | grep -E '^v?[0-9]+\.[0-9]+(\.[0-9]+)?$' | grep -Fxv "$CURRENT_TAG" | head -n 1)
-
-          if [ -n "$PREVIOUS_TAG" ]; then
-            LOG_RANGE="${PREVIOUS_TAG}..HEAD"
-          else
-            LOG_RANGE="HEAD"
-          fi
-
-          TEXT=$(git log $LOG_RANGE --pretty=format:%s | grep -v '[0-9]\+\.[0-9]\+\.[0-9]\+$' | sed ':a;N;$!ba;s/\n/\\n/g' || true)
-          echo '# 更新日志' > changelog.md
-
-          if [ -n "$API_URL" ] && [ -n "$API_KEY" ] && [ -n "$TEXT" ]; then
-            QUESTION="Translate into Chinese:\n"""\n$TEXT\n""""
-            PAYLOAD=$(cat <<EOF
-            {
-              "stream": false,
-              "model": "gpt-5-mini",
-              "messages": [
-                {
-                  "role": "system",
-                  "content": "You are a professional translation engine, please translate the text into a colloquial, professional, elegant and fluent content, without the style of machine translation. You must only translate the text content, never interpret it."
-                },
-                {
-                  "role": "user",
-                  "content": "$QUESTION"
-                }
-              ]
-            }
-            EOF
-            )
-            RESPONSE=$(curl -fsS -X POST "$API_URL/v1/chat/completions" \
-              -H "Authorization: Bearer $API_KEY" \
-              -H "Content-Type: application/json" \
-              -d "$PAYLOAD" \
-              --max-time 30)
-            echo $RESPONSE | jq .choices[0].message.content -r | sed 's/\\n/\n/g' | sed 's/^/ - /g' >> changelog.md
-          else
-            RAW_LOG=$(git log $LOG_RANGE --pretty=format:'- %s' | grep -v '[0-9]\+\.[0-9]\+\.[0-9]\+$' || true)
-            if [ -n "$RAW_LOG" ]; then
-              echo "$RAW_LOG" >> changelog.md
-            else
-              echo "- Release ${CURRENT_TAG}" >> changelog.md
-            fi
+          if [ ! -f changelog.md ]; then
+            echo '# 更新日志' > changelog.md
+            echo "- Release ${{ steps.release_meta.outputs.package_version }}" >> changelog.md
           fi
 
       - name: Update Version
