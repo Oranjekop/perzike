@@ -185,44 +185,6 @@ jobs:
             latest.yml
             changelog.md
 
-  pre-release:
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: bin/
-          merge-multiple: true
-
-      - name: Delete current release assets
-        uses: 8Mi-Tech/delete-release-assets-action@main
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: pre-release
-          deleteOnlyFromDrafts: false
-
-      - name: Tag Repo
-        uses: richardsimko/update-tag@v1
-        with:
-          tag_name: pre-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish Prerelease
-        if: success()
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: pre-release
-          body_path: bin/changelog.md
-          files: |
-            bin/latest.yml
-            bin/dist/*
-          prerelease: true
-
   release:
     if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.version != '')
     needs: [build]
@@ -266,7 +228,16 @@ jobs:
           API_URL: ${{ secrets.API_URL }}
           API_KEY: ${{ secrets.API_KEY }}
         run: |
-          TEXT=$(git log $(jq -r .version package.json)..HEAD --pretty=format:%s | grep -v '[0-9]\+\.[0-9]\+\.[0-9]\+$' | sed ':a;N;$!ba;s/\n/\\n/g')
+          CURRENT_TAG="${{ steps.release_meta.outputs.tag_name }}"
+          PREVIOUS_TAG=$(git tag --sort=-v:refname | grep -E '^v?[0-9]+\.[0-9]+(\.[0-9]+)?$' | grep -Fxv "$CURRENT_TAG" | head -n 1)
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            LOG_RANGE="${PREVIOUS_TAG}..HEAD"
+          else
+            LOG_RANGE="HEAD"
+          fi
+
+          TEXT=$(git log $LOG_RANGE --pretty=format:%s | grep -v '[0-9]\+\.[0-9]\+\.[0-9]\+$' | sed ':a;N;$!ba;s/\n/\\n/g')
           QUESTION="Translate into Chinese:\n"""\n$TEXT\n""""
           PAYLOAD=$(cat <<EOF
           {
