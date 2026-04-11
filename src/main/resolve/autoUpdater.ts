@@ -14,15 +14,28 @@ import { disableSysProxy } from '../sys/sysproxy'
 
 let downloadCancelToken: CancelTokenSource | null = null
 
-export async function checkUpdate(): Promise<AppVersion | undefined> {
-  const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
-  const { updateChannel = 'stable' } = await getAppConfig()
-  let url = 'https://github.com/Perzikkop/perzike/releases/latest/download/latest.yml'
-  if (updateChannel == 'beta') {
-    url = 'https://github.com/Perzikkop/perzike/releases/download/pre-release/latest.yml'
-  }
-  const res = await axios.get(url, {
-    headers: { 'Content-Type': 'application/octet-stream' },
+interface GithubReleaseAsset {
+  name: string
+  digest?: string
+  browser_download_url: string
+}
+
+interface GithubRelease {
+  tag_name: string
+  draft: boolean
+  prerelease: boolean
+  assets: GithubReleaseAsset[]
+}
+
+function createAxiosConfig(
+  mixedPort: number,
+  cancelToken?: CancelTokenSource['token']
+): AxiosRequestConfig {
+  return {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'Perzike-Updater'
+    },
     ...(mixedPort != 0 && {
       proxy: {
         protocol: 'http',
@@ -30,6 +43,87 @@ export async function checkUpdate(): Promise<AppVersion | undefined> {
         port: mixedPort
       }
     }),
+    ...(cancelToken && { cancelToken })
+  }
+}
+
+async function fetchReleaseByTag(tag: string, mixedPort: number): Promise<GithubRelease | undefined> {
+  try {
+    const res = await axios.get<GithubRelease>(
+      `https://api.github.com/repos/Perzikkop/perzike/releases/tags/${tag}`,
+      createAxiosConfig(mixedPort)
+    )
+    return res.data
+  } catch (e) {
+    if (axios.isAxiosError(e) && e.response?.status === 404) {
+      return undefined
+    }
+    throw e
+  }
+}
+
+async function fetchReleases(mixedPort: number): Promise<GithubRelease[]> {
+  const res = await axios.get<GithubRelease[]>(
+    'https://api.github.com/repos/Perzikkop/perzike/releases?per_page=20',
+    createAxiosConfig(mixedPort)
+  )
+  return res.data
+}
+
+function getLatestYmlAsset(release: GithubRelease): GithubReleaseAsset | undefined {
+  return release.assets.find((asset) => asset.name === 'latest.yml')
+}
+
+async function resolveReleaseForChannel(
+  updateChannel: AppConfig['updateChannel'],
+  mixedPort: number
+): Promise<GithubRelease | undefined> {
+  if (updateChannel === 'beta') {
+    const betaRelease = await fetchReleaseByTag('pre-release', mixedPort)
+    if (betaRelease && !betaRelease.draft) {
+      return betaRelease
+    }
+  }
+
+  const releases = await fetchReleases(mixedPort)
+  return releases.find((release) => {
+    if (release.draft) return false
+    if (updateChannel === 'stable' && release.prerelease) return false
+    if (updateChannel === 'beta' && !release.prerelease) return false
+    return Boolean(getLatestYmlAsset(release))
+  })
+}
+
+async function resolveReleaseForVersion(
+  version: string,
+  mixedPort: number
+): Promise<GithubRelease | undefined> {
+  if (version.includes('beta')) {
+    return await resolveReleaseForChannel('beta', mixedPort)
+  }
+
+  const releases = await fetchReleases(mixedPort)
+  return releases.find((release) => {
+    if (release.draft || release.prerelease) return false
+    return release.tag_name === version || release.tag_name === `v${version}`
+  })
+}
+
+export async function checkUpdate(): Promise<AppVersion | undefined> {
+  const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
+  const { updateChannel = 'stable' } = await getAppConfig()
+  const release = await resolveReleaseForChannel(updateChannel, mixedPort)
+  if (!release) {
+    return undefined
+  }
+
+  const latestYmlAsset = getLatestYmlAsset(release)
+  if (!latestYmlAsset) {
+    return undefined
+  }
+
+  const res = await axios.get(latestYmlAsset.browser_download_url, {
+    ...createAxiosConfig(mixedPort),
     responseType: 'text'
   })
   const latest = parseYaml<AppVersion>(res.data)
@@ -43,11 +137,6 @@ export async function checkUpdate(): Promise<AppVersion | undefined> {
 
 export async function downloadAndInstallUpdate(version: string): Promise<void> {
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
-  let releaseTag = version
-  if (version.includes('beta')) {
-    releaseTag = 'pre-release'
-  }
-  const baseUrl = `https://github.com/Perzikkop/perzike/releases/download/${releaseTag}/`
   const fileMap = {
     'win32-x64': `perzike-windows-${version}-x64-setup.exe`,
     'win32-arm64': `perzike-windows-${version}-arm64-setup.exe`,
@@ -55,26 +144,13 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
     'darwin-arm64': `perzike-macos-${version}-arm64.pkg`
   }
   let file = fileMap[`${process.platform}-${process.arch}`]
-  if (isPortable()) {
-    file = file.replace('-setup.exe', '-portable.7z')
-  }
   if (!file) {
     throw new Error('不支持自动更新，请手动下载更新')
   }
-  downloadCancelToken = axios.CancelToken.source()
-
-  const apiUrl = `https://api.github.com/repos/Perzikkop/perzike/releases/tags/${releaseTag}`
-  const apiRequestConfig: AxiosRequestConfig = {
-    headers: { Accept: 'application/vnd.github.v3+json' },
-    ...(mixedPort != 0 && {
-      proxy: {
-        protocol: 'http',
-        host: '127.0.0.1',
-        port: mixedPort
-      }
-    }),
-    cancelToken: downloadCancelToken.token
+  if (isPortable()) {
+    file = file.replace('-setup.exe', '-portable.7z')
   }
+  downloadCancelToken = axios.CancelToken.source()
 
   try {
     mainWindow?.webContents.send('update-status', {
@@ -82,8 +158,12 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
       progress: 0
     })
 
-    const releaseRes = await axios.get(apiUrl, apiRequestConfig)
-    const assets: Array<{ name: string; digest?: string }> = releaseRes.data.assets || []
+    const release = await resolveReleaseForVersion(version, mixedPort)
+    if (!release) {
+      throw new Error(`未找到版本 ${version} 对应的发布信息`)
+    }
+
+    const assets = release.assets || []
     const matchedAsset = assets.find((a) => a.name === file)
     if (!matchedAsset || !matchedAsset.digest) {
       throw new Error(`无法从 GitHub Release 中找到 "${file}" 对应的 SHA-256 信息`)
@@ -91,19 +171,12 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
     const expectedHash = matchedAsset.digest.split(':')[1].toLowerCase()
 
     if (!existsSync(path.join(dataDir(), file))) {
-      const res = await axios.get(`${baseUrl}${file}`, {
+      const res = await axios.get(matchedAsset.browser_download_url, {
         responseType: 'arraybuffer',
-        ...(mixedPort != 0 && {
-          proxy: {
-            protocol: 'http',
-            host: '127.0.0.1',
-            port: mixedPort
-          }
-        }),
+        ...createAxiosConfig(mixedPort, downloadCancelToken.token),
         headers: {
           'Content-Type': 'application/octet-stream'
         },
-        cancelToken: downloadCancelToken.token,
         onDownloadProgress: (progressEvent) => {
           const percentCompleted = Math.round(
             (progressEvent.loaded * 100) / (progressEvent.total || 1)
