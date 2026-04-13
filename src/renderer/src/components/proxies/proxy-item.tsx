@@ -55,7 +55,7 @@ const ProxyItem: React.FC<Props> = (props) => {
       isPressable
       fullWidth
       shadow="sm"
-      className={`${fixed ? 'bg-secondary/30' : selected ? 'bg-primary/30' : 'bg-content2'}`}
+      className={`${fixed ? 'bg-secondary/25' : selected ? 'bg-[#69afff]/20' : 'bg-white'} border border-default-200/35`}
       radius="sm"
     >
       <CardBody className="py-1.5 px-2">
@@ -70,7 +70,9 @@ const ProxyItem: React.FC<Props> = (props) => {
                     {proxy.name}
                   </div>
                 </div>
-                <div className="text-[12px] text-foreground-500 leading-none mt-0.5">
+                <div
+                  className={`text-[12px] leading-none mt-0.5 ${selected ? 'text-foreground-700' : 'text-foreground-500'}`}
+                >
                   <span>{proxy.type}</span>
                 </div>
               </div>
@@ -110,7 +112,10 @@ const ProxyItem: React.FC<Props> = (props) => {
                   {proxy.name}
                 </div>
                 {proxyDisplayLayout === 'single' && (
-                  <div className="inline ml-2 text-foreground-500" title={proxy.type}>
+                  <div
+                    className={`inline ml-2 ${selected ? 'text-foreground-700' : 'text-foreground-500'}`}
+                    title={proxy.type}
+                  >
                     {proxy.type}
                   </div>
                 )}
