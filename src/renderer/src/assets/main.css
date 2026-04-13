@@ -81,6 +81,20 @@
   color: inherit;
 }
 
+/* Soften card shadows to better match the light blue background. */
+.shadow-small,
+.shadow-sm {
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.03),
+    0 10px 24px rgb(90 140 210 / 0.09) !important;
+}
+
+.shadow-medium {
+  box-shadow:
+    0 2px 6px rgb(15 23 42 / 0.04),
+    0 14px 30px rgb(90 140 210 / 0.12) !important;
+}
+
 * {
   user-select: none;
 }
