@@ -9,11 +9,16 @@ interface Props {
 
 const SettingCard: React.FC<Props> = (props) => {
   return !props.title ? (
-    <Card className={`${props.className} m-2`}>
+    <Card className={`${props.className ?? ''} m-2 subpixel-antialiased`}>
       <CardBody>{props.children}</CardBody>
     </Card>
   ) : (
-    <Accordion isCompact className={`${props.className} my-2`} variant="splitted" {...props}>
+    <Accordion
+      isCompact
+      className={`${props.className ?? ''} my-2 subpixel-antialiased`}
+      variant="splitted"
+      {...props}
+    >
       <AccordionItem
         className="data-[open=true]:pb-2"
         keepContentMounted
