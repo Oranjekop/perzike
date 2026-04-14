@@ -81,6 +81,11 @@
   color: inherit;
 }
 
+/* Theme-colored ripple for proxy group expand/collapse cards. */
+.proxy-group-card .heroui-ripple {
+  background-color: hsl(var(--heroui-primary) / 0.8) !important;
+}
+
 /* Soften card shadows to better match the light blue background. */
 .shadow-small,
 .shadow-sm {
