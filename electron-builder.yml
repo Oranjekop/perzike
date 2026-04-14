@@ -62,7 +62,7 @@ linux:
     - deb
     - rpm
     - pacman
-  maintainer: Perzikkop
+  maintainer: Oranjekop
   category: Utility
   artifactName: ${name}-linux-${version}-${arch}.${ext}
 deb:

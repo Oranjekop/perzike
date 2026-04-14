@@ -3,8 +3,8 @@
 <h3 align="center">Another <a href="https://github.com/MetaCubeX/mihomo">Mihomo</a> GUI</h3>
 
 <p align="center">
-  <a href="https://github.com/Perzikkop/perzike/releases">
-    <img src="https://img.shields.io/github/release/Perzikkop/perzike/all.svg">
+  <a href="https://github.com/Oranjekop/perzike/releases">
+    <img src="https://img.shields.io/github/release/Oranjekop/perzike/all.svg">
   </a>
 </p>
 
@@ -55,7 +55,7 @@ Perzike 基于 Electron + React + TypeScript 构建
 1. **克隆项目**
 
 ```bash
-git clone https://github.com/Perzikkop/perzike.git
+git clone https://github.com/Oranjekop/perzike.git
 cd perzike
 ```
 
@@ -230,4 +230,3 @@ node --version
 - 所有命令都使用 pnpm 执行
 - 修改类型定义后需要重启 TypeScript 服务
 - 预加载脚本修改后需要重启应用
-

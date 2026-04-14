@@ -171,13 +171,13 @@ export async function createApplicationMenu(): Promise<void> {
         {
           label: '了解更多',
           click: () => {
-            shell.openExternal('https://github.com/Perzikkop/perzike')
+            shell.openExternal('https://github.com/Oranjekop/perzike')
           }
         },
         {
           label: '报告问题',
           click: () => {
-            shell.openExternal('https://github.com/Perzikkop/perzike/issues')
+            shell.openExternal('https://github.com/Oranjekop/perzike/issues')
           }
         },
         { type: 'separator' },

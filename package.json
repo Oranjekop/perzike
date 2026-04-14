@@ -4,10 +4,10 @@
   "description": "Perzike",
   "main": "./out/main/index.js",
   "author": {
-    "name": "Perzikkop",
+    "name": "Oranjekop",
     "email": "123@gmail.com"
   },
-  "homepage": "https://github.com/Perzikkop/perzike",
+  "homepage": "https://github.com/Oranjekop/perzike",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
