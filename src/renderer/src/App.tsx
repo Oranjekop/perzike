@@ -32,7 +32,6 @@ import { applyTheme, checkUpdate, setNativeTheme, setTitleBarOverlay } from '@re
 import { platform } from '@renderer/utils/init'
 import { TitleBarOverlayOptions } from 'electron'
 import SubStoreCard from '@renderer/components/sider/substore-card'
-import MihomoIcon from './components/base/mihomo-icon'
 import useSWR from 'swr'
 import ConfirmModal from '@renderer/components/base/base-confirm'
 
@@ -361,7 +360,9 @@ const App: React.FC = () => {
       {siderWidthValue === narrowWidth ? (
         <div style={{ width: `${narrowWidth}px` }} className="side h-full">
           <div className="app-drag flex justify-center items-center z-40 bg-transparent h-11.25">
-            {platform !== 'darwin' && <MihomoIcon className="h-8 leading-8 text-lg mx-px" />}
+            {platform !== 'darwin' && (
+              <span className="text-lg font-bold leading-8 tracking-wide select-none">P</span>
+            )}
           </div>
           <div
             className={`${latest ? 'h-[calc(100%-275px)]' : 'h-[calc(100%-227px)]'} overflow-y-auto no-scrollbar`}
