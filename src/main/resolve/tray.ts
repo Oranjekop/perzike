@@ -6,9 +6,8 @@ import {
   patchAppConfig,
   patchControledMihomoConfig
 } from '../config'
-import icoIcon from '../../../resources/icon.ico?asset'
-import pngIcon from '../../../resources/icon.png?asset'
-import templateIcon from '../../../resources/iconTemplate.png?asset'
+import icoIcon from '../../../build/icon.ico?asset'
+import pngIcon from '../../../build/icon.png?asset'
 import {
   mihomoChangeProxy,
   mihomoCloseConnections,
@@ -456,7 +455,7 @@ export async function createTray(): Promise<void> {
     tray.setContextMenu(menu)
   }
   if (process.platform === 'darwin') {
-    const icon = nativeImage.createFromPath(templateIcon).resize({ height: 16 })
+    const icon = nativeImage.createFromPath(pngIcon).resize({ height: 16 })
     icon.setTemplateImage(true)
     tray = new Tray(icon)
   }
