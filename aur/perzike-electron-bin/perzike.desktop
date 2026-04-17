@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Perzike
+Exec=perzike %U
+Terminal=false
+Type=Application
+Icon=perzike
+StartupWMClass=perzike
+MimeType=x-scheme-handler/clash;x-scheme-handler/mihomo;x-scheme-handler/perzike;
+Comment=Perzike
+Categories=Utility;

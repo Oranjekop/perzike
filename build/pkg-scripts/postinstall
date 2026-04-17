@@ -1,0 +1,14 @@
+#!/bin/sh
+
+APP_PATH="$2/Perzike.app"
+
+chown root:admin "$APP_PATH/Contents/Resources/sidecar/mihomo"
+chown root:admin "$APP_PATH/Contents/Resources/sidecar/mihomo-alpha"
+chmod +s "$APP_PATH/Contents/Resources/sidecar/mihomo"
+chmod +s "$APP_PATH/Contents/Resources/sidecar/mihomo-alpha"
+
+/usr/bin/codesign --force --deep --sign - \
+  --preserve-metadata=identifier,entitlements,requirements,flags,runtime \
+  "$APP_PATH"
+
+exit 0

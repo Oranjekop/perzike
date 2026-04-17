@@ -1,0 +1,27 @@
+#!/bin/sh
+
+OLD_SYSPROXY="/Library/PrivilegedHelperTools/perzike.helper"
+
+UNINSTALL=false
+
+if [ ! -f "$OLD_SYSPROXY" ]; then
+    UNINSTALL=true
+fi
+
+if [ "$UNINSTALL" = true ]; then
+    if launchctl list | grep -q "perzike.helper"; then
+        launchctl stop perzike.helper 2>/dev/null || true
+        launchctl unload /Library/LaunchDaemons/perzike.helper.plist 2>/dev/null || true
+    fi
+
+    for file in "/Library/LaunchDaemons/perzike.helper.plist" \
+               "/Library/PrivilegedHelperTools/perzike.helper" \
+               "/tmp/perzike.helper" \
+               "/tmp/perzike-helper.sock"; do
+        if [ -e "$file" ]; then
+            rm -f "$file"
+        fi
+    done
+fi
+
+exit 0
