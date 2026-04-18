@@ -1,35 +1,23 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
-import { Button, Select, SelectItem, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
-import { BiSolidFileImport } from 'react-icons/bi'
+import { Button, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
 import {
-  applyTheme,
   closeFloatingWindow,
   closeTrayIcon,
-  fetchThemes,
-  getFilePath,
-  importThemes,
   relaunchApp,
-  resolveThemes,
   setDockVisible,
   showFloatingWindow,
   showTrayIcon,
   startMonitor,
-  writeTheme
 } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import { useTheme } from 'next-themes'
-import { IoIosHelpCircle, IoMdCloudDownload } from 'react-icons/io'
-import { MdEditDocument } from 'react-icons/md'
-import CSSEditorModal from './css-editor-modal'
+import { IoIosHelpCircle } from 'react-icons/io'
 
 const AppearanceConfig: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
-  const [customThemes, setCustomThemes] = useState<{ key: string; label: string }[]>()
-  const [openCSSEditor, setOpenCSSEditor] = useState(false)
-  const [fetching, setFetching] = useState(false)
   const { setTheme } = useTheme()
   const {
     useDockIcon = true,
@@ -40,17 +28,10 @@ const AppearanceConfig: React.FC = () => {
     showFloatingWindow: showFloating = false,
     spinFloatingIcon = true,
     useWindowFrame = false,
-    customTheme = 'default.css',
     appTheme = 'system'
   } = appConfig || {}
   const [localShowFloating, setLocalShowFloating] = useState(showFloating)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  useEffect(() => {
-    resolveThemes().then((themes) => {
-      setCustomThemes(themes)
-    })
-  }, [])
 
   useEffect(() => {
     return (): void => {
@@ -62,17 +43,6 @@ const AppearanceConfig: React.FC = () => {
 
   return (
     <>
-      {openCSSEditor && (
-        <CSSEditorModal
-          theme={customTheme}
-          onCancel={() => setOpenCSSEditor(false)}
-          onConfirm={async (css: string) => {
-            await writeTheme(customTheme, css)
-            await applyTheme(customTheme)
-            setOpenCSSEditor(false)
-          }}
-        />
-      )}
       <SettingCard title="外观设置">
         <SettingItem
           title="显示悬浮窗"
@@ -204,7 +174,7 @@ const AppearanceConfig: React.FC = () => {
             }}
           />
         </SettingItem>
-        <SettingItem title="背景色" divider>
+        <SettingItem title="背景色">
           <Tabs
             size="sm"
             color="primary"
@@ -218,83 +188,6 @@ const AppearanceConfig: React.FC = () => {
             <Tab key="dark" title="深色" />
             <Tab key="light" title="浅色" />
           </Tabs>
-        </SettingItem>
-        <SettingItem
-          title="主题"
-          actions={
-            <>
-              <Button
-                size="sm"
-                isLoading={fetching}
-                isIconOnly
-                title="拉取主题"
-                variant="light"
-                onPress={async () => {
-                  setFetching(true)
-                  try {
-                    await fetchThemes()
-                    setCustomThemes(await resolveThemes())
-                  } catch (e) {
-                    alert(e)
-                  } finally {
-                    setFetching(false)
-                  }
-                }}
-              >
-                <IoMdCloudDownload className="text-lg" />
-              </Button>
-              <Button
-                size="sm"
-                isIconOnly
-                title="导入主题"
-                variant="light"
-                onPress={async () => {
-                  const files = await getFilePath(['css'])
-                  if (!files) return
-                  try {
-                    await importThemes(files)
-                    setCustomThemes(await resolveThemes())
-                  } catch (e) {
-                    alert(e)
-                  }
-                }}
-              >
-                <BiSolidFileImport className="text-lg" />
-              </Button>
-              <Button
-                size="sm"
-                isIconOnly
-                title="编辑主题"
-                variant="light"
-                onPress={async () => {
-                  setOpenCSSEditor(true)
-                }}
-              >
-                <MdEditDocument className="text-lg" />
-              </Button>
-            </>
-          }
-        >
-          {customThemes && (
-            <Select
-              classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
-              className="w-[60%]"
-              size="sm"
-              selectedKeys={new Set([customTheme])}
-              disallowEmptySelection={true}
-              onSelectionChange={async (v) => {
-                try {
-                  await patchAppConfig({ customTheme: v.currentKey as string })
-                } catch (e) {
-                  alert(e)
-                }
-              }}
-            >
-              {customThemes.map((theme) => (
-                <SelectItem key={theme.key}>{theme.label}</SelectItem>
-              ))}
-            </Select>
-          )}
         </SettingItem>
       </SettingCard>
     </>

@@ -11,8 +11,7 @@ import {
   profilePath,
   profilesDir,
   resourcesFilesDir,
-  subStoreDir,
-  themesDir
+  subStoreDir
 } from './dirs'
 import {
   defaultConfig,
@@ -47,7 +46,6 @@ async function initDirs(): Promise<void> {
     await mkdir(dataDir())
   }
   const dirs = [
-    themesDir(),
     profilesDir(),
     overrideDir(),
     mihomoWorkDir(),

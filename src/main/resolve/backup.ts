@@ -9,8 +9,7 @@ import {
   overrideDir,
   profileConfigPath,
   profilesDir,
-  subStoreDir,
-  themesDir
+  subStoreDir
 } from '../utils/dirs'
 
 export async function webdavBackup(): Promise<boolean> {
@@ -27,7 +26,6 @@ export async function webdavBackup(): Promise<boolean> {
   zip.addLocalFile(controledMihomoConfigPath())
   zip.addLocalFile(profileConfigPath())
   zip.addLocalFile(overrideConfigPath())
-  zip.addLocalFolder(themesDir(), 'themes')
   zip.addLocalFolder(profilesDir(), 'profiles')
   zip.addLocalFolder(overrideDir(), 'override')
   zip.addLocalFolder(subStoreDir(), 'substore')

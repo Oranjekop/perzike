@@ -28,7 +28,7 @@ import MihomoCoreCard from '@renderer/components/sider/mihomo-core-card'
 import ResourceCard from '@renderer/components/sider/resource-card'
 import UpdaterButton from '@renderer/components/updater/updater-button'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { applyTheme, checkUpdate, setNativeTheme, setTitleBarOverlay } from '@renderer/utils/ipc'
+import { checkUpdate, setNativeTheme, setTitleBarOverlay } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
 import { TitleBarOverlayOptions } from 'electron'
 import SubStoreCard from '@renderer/components/sider/substore-card'
@@ -78,7 +78,6 @@ const App: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     appTheme = 'system',
-    customTheme,
     useWindowFrame = false,
     siderWidth = 250,
     siderOrder,
@@ -149,12 +148,6 @@ const App: React.FC = () => {
     setTheme(appTheme)
     setTitlebar()
   }, [appTheme, systemTheme])
-
-  useEffect(() => {
-    applyTheme(customTheme || 'default.css').then(() => {
-      setTitlebar()
-    })
-  }, [customTheme])
 
   useEffect(() => {
     window.addEventListener('mouseup', onResizeEnd)
