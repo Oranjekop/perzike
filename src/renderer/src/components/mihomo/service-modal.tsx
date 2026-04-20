@@ -14,6 +14,7 @@ import {
 } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { serviceStatus, testServiceConnection } from '@renderer/utils/ipc'
+import { platform } from '@renderer/utils/init'
 
 interface Props {
   onChange: (open: boolean) => void
@@ -34,6 +35,7 @@ const ServiceModal: React.FC<Props> = (props) => {
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<ServiceStatusType | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusType>('checking')
+  const serviceFeatureAvailable = platform === 'darwin'
 
   const checkServiceConnection = useCallback(async (): Promise<void> => {
     if (status === 'running') {
@@ -224,16 +226,16 @@ const ServiceModal: React.FC<Props> = (props) => {
 
             <div className="text-xs text-default-500 space-y-2">
               <div className="flex items-start gap-2">
-                <span>提供系统代理设置和核心进程管理的提权功能</span>
+                <span>服务模式目前仅用于 macOS 下的系统代理与 DNS 提权调用</span>
               </div>
               <div className="flex items-start gap-2">
-                <span>未安装状态下部分高级功能将无法使用</span>
+                <span>Windows 和 Linux 端暂未接入实际业务流程，启动服务后通常不会看到功能变化</span>
               </div>
               <div className="flex items-start gap-2">
-                <span>暂未支持全部功能，目前仅支持安装以及管理服务本身</span>
+                <span>当前仍是实验性入口，暂未支持用服务模式托管核心本身</span>
               </div>
               <div className="flex items-start gap-2">
-                <span>暂时不要报告问题</span>
+                <span>如果你在 Windows 上遇到“启用无效”，这属于当前实现范围之外</span>
               </div>
             </div>
           </div>
@@ -267,6 +269,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                 variant="flat"
                 onPress={() => handleAction(onInit)}
                 isLoading={loading}
+                isDisabled={!serviceFeatureAvailable}
               >
                 初始化
               </Button>
@@ -276,6 +279,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                 variant="flat"
                 onPress={() => handleAction(onRestart)}
                 isLoading={loading}
+                isDisabled={!serviceFeatureAvailable}
               >
                 重启
               </Button>
@@ -286,6 +290,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                   variant="flat"
                   onPress={() => handleAction(onStop)}
                   isLoading={loading}
+                  isDisabled={!serviceFeatureAvailable}
                 >
                   停止
                 </Button>
@@ -296,6 +301,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                   variant="shadow"
                   onPress={() => handleAction(onStart, true)}
                   isLoading={loading}
+                  isDisabled={!serviceFeatureAvailable}
                 >
                   启动
                 </Button>

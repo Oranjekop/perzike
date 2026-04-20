@@ -1,10 +1,8 @@
-import { Button, Input, Select, SelectItem, Switch, Tab, Tabs } from '@heroui/react'
+import { Button, Input, Select, SelectItem, Switch } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
-import ConfirmModal, { ConfirmButton } from '@renderer/components/base/base-confirm'
 import PermissionModal from '@renderer/components/mihomo/permission-modal'
-import ServiceModal from '@renderer/components/mihomo/service-modal'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import PortSetting from '@renderer/components/mihomo/port-setting'
@@ -16,17 +14,8 @@ import {
   mihomoUpgrade,
   restartCore,
   revokeCorePermission,
-  findSystemMihomo,
   deleteElevateTask,
-  checkElevateTask,
-  relaunchApp,
-  notDialogQuit,
-  installService,
-  uninstallService,
-  startService,
-  stopService,
-  initService,
-  restartService
+  findSystemMihomo
 } from '@renderer/utils/ipc'
 import React, { useState, useEffect } from 'react'
 import ControllerSetting from '@renderer/components/mihomo/controller-setting'
@@ -58,16 +47,12 @@ getSystemCorePaths().catch(() => {})
 
 const Mihomo: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
-  const { core = 'mihomo', maxLogDays = 7, corePermissionMode = 'elevated' } = appConfig || {}
+  const { core = 'mihomo', maxLogDays = 7 } = appConfig || {}
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { ipv6, 'log-level': logLevel = 'info' } = controledMihomoConfig || {}
 
   const [upgrading, setUpgrading] = useState(false)
-  const [showGrantConfirm, setShowGrantConfirm] = useState(false)
-  const [showUnGrantConfirm, setShowUnGrantConfirm] = useState(false)
   const [showPermissionModal, setShowPermissionModal] = useState(false)
-  const [showServiceModal, setShowServiceModal] = useState(false)
-  const [pendingPermissionMode, setPendingPermissionMode] = useState<string>('')
   const [systemCorePaths, setSystemCorePaths] = useState<string[]>(systemCorePathsCache || [])
   const [loadingPaths, setLoadingPaths] = useState(systemCorePathsCache === null)
 
@@ -129,102 +114,8 @@ const Mihomo: React.FC = () => {
     handleConfigChangeWithRestart('core', newCore)
   }
 
-  const handlePermissionModeChange = async (key: string): Promise<void> => {
-    if (key === corePermissionMode) return
-
-    if (platform === 'win32') {
-      if (key !== 'elevated') {
-        if (await checkElevateTask()) {
-          setPendingPermissionMode(key)
-          setShowUnGrantConfirm(true)
-        } else {
-          patchAppConfig({ corePermissionMode: key as 'elevated' | 'service' })
-        }
-      } else if (key === 'elevated') {
-        setPendingPermissionMode(key)
-        setShowGrantConfirm(true)
-      }
-    } else {
-      patchAppConfig({ corePermissionMode: key as 'elevated' | 'service' })
-    }
-  }
-
-  const unGrantButtons: ConfirmButton[] = [
-    {
-      key: 'cancel',
-      text: '取消',
-      variant: 'light',
-      onPress: () => {}
-    },
-    {
-      key: 'confirm',
-      text: platform === 'win32' ? '不重启取消' : '确认撤销',
-      color: 'warning',
-      onPress: async () => {
-        try {
-          if (platform === 'win32') {
-            await deleteElevateTask()
-            new Notification('任务计划已取消注册')
-          } else {
-            await revokeCorePermission()
-            new Notification('内核权限已撤销')
-          }
-          await patchAppConfig({
-            corePermissionMode: pendingPermissionMode as 'elevated' | 'service'
-          })
-
-          await restartCore()
-        } catch (e) {
-          alert(e)
-        }
-      }
-    },
-    ...(platform === 'win32'
-      ? [
-          {
-            key: 'cancel-and-restart',
-            text: '取消并重启',
-            color: 'danger' as const,
-            onPress: async () => {
-              try {
-                await deleteElevateTask()
-                new Notification('任务计划已取消注册')
-                await patchAppConfig({
-                  corePermissionMode: pendingPermissionMode as 'elevated' | 'service'
-                })
-                await relaunchApp()
-              } catch (e) {
-                alert(e)
-              }
-            }
-          }
-        ]
-      : [])
-  ]
-
   return (
     <BasePage title="内核设置">
-      {showGrantConfirm && (
-        <ConfirmModal
-          onChange={setShowGrantConfirm}
-          title="确认使用任务计划？"
-          description="确认后将退出应用，请手动使用管理员运行一次程序"
-          onConfirm={async () => {
-            await patchAppConfig({
-              corePermissionMode: pendingPermissionMode as 'elevated' | 'service'
-            })
-            await notDialogQuit()
-          }}
-        />
-      )}
-      {showUnGrantConfirm && (
-        <ConfirmModal
-          onChange={setShowUnGrantConfirm}
-          title="确认取消任务计划？"
-          description="取消任务计划后，虚拟网卡等功能可能无法正常工作。确定要继续吗？"
-          buttons={unGrantButtons}
-        />
-      )}
       {showPermissionModal && (
         <PermissionModal
           onChange={setShowPermissionModal}
@@ -242,35 +133,6 @@ const Mihomo: React.FC = () => {
             await manualGrantCorePermition()
             new Notification('内核授权成功')
             await restartCore()
-          }}
-        />
-      )}
-      {showServiceModal && (
-        <ServiceModal
-          onChange={setShowServiceModal}
-          onInit={async () => {
-            await initService()
-            new Notification('服务初始化成功')
-          }}
-          onInstall={async () => {
-            await installService()
-            new Notification('服务安装成功')
-          }}
-          onUninstall={async () => {
-            await uninstallService()
-            new Notification('服务卸载成功')
-          }}
-          onStart={async () => {
-            await startService()
-            new Notification('服务启动成功')
-          }}
-          onRestart={async () => {
-            await restartService()
-            new Notification('服务重启成功')
-          }}
-          onStop={async () => {
-            await stopService()
-            new Notification('服务停止成功')
           }}
         />
       )}
@@ -337,25 +199,8 @@ const Mihomo: React.FC = () => {
             )}
           </SettingItem>
         )}
-        <SettingItem title="运行模式" divider>
-          <Tabs
-            size="sm"
-            color="primary"
-            selectedKey={corePermissionMode}
-            disabledKeys={['service']}
-            onSelectionChange={(key) => handlePermissionModeChange(key as string)}
-          >
-            <Tab key="elevated" title={platform === 'win32' ? '任务计划' : '授权运行'} />
-            <Tab key="service" title="系统服务" />
-          </Tabs>
-        </SettingItem>
         <SettingItem title={platform === 'win32' ? '任务状态' : '授权状态'} divider>
           <Button size="sm" color="primary" onPress={() => setShowPermissionModal(true)}>
-            管理
-          </Button>
-        </SettingItem>
-        <SettingItem title="服务状态" divider>
-          <Button size="sm" color="primary" onPress={() => setShowServiceModal(true)}>
             管理
           </Button>
         </SettingItem>
