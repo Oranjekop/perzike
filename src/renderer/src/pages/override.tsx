@@ -176,8 +176,8 @@ const Override: React.FC = () => {
         </>
       }
     >
-      <div className="sticky top-0 z-40 bg-background">
-        <div className="flex p-2">
+      <div className="sticky top-0 z-40 px-2 pt-2 bg-transparent">
+        <div className="flex p-2 rounded-xl border border-default-200/70 bg-content1/90 shadow-sm backdrop-blur-sm">
           <Input
             size="sm"
             value={url}
@@ -266,7 +266,7 @@ const Override: React.FC = () => {
             </DropdownMenu>
           </Dropdown>
         </div>
-        <Divider />
+        <Divider className="mt-2" />
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <div

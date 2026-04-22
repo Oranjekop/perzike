@@ -32,6 +32,10 @@ export function subStoreDir(): string {
   return path.join(dataDir(), 'substore')
 }
 
+export function localBackupDir(): string {
+  return path.join(dataDir(), 'backup')
+}
+
 export function exeDir(): string {
   return path.dirname(exePath())
 }

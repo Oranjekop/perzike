@@ -3,6 +3,7 @@ import BasePage from '@renderer/components/base/base-page'
 // import { CgWebsite } from 'react-icons/cg'
 import { IoLogoGithub } from 'react-icons/io5'
 import WebdavConfig from '@renderer/components/settings/webdav-config'
+import LocalBackupConfig from '@renderer/components/settings/local-backup-config'
 import GeneralConfig from '@renderer/components/settings/general-config'
 import AdvancedSettings from '@renderer/components/settings/advanced-settings'
 import Actions from '@renderer/components/settings/actions'
@@ -48,6 +49,7 @@ const Settings: React.FC = () => {
       <AppearanceConfig />
       <SubStoreConfig />
       <SiderConfig />
+      <LocalBackupConfig />
       <WebdavConfig />
       <AdvancedSettings />
       <ShortcutConfig />

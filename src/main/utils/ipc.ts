@@ -26,6 +26,7 @@ import { checkAutoRun, disableAutoRun, enableAutoRun } from '../sys/autoRun'
 import {
   getAppConfig,
   patchAppConfig,
+  updateProxyGroupState,
   getControledMihomoConfig,
   patchControledMihomoConfig,
   getProfileConfig,
@@ -99,7 +100,16 @@ import {
   getCurrentProfileStr,
   getOverrideProfileStr
 } from '../core/factory'
-import { listWebdavBackups, webdavBackup, webdavDelete, webdavRestore } from '../resolve/backup'
+import {
+  listLocalBackups,
+  listWebdavBackups,
+  localBackup,
+  localDelete,
+  localRestore,
+  webdavBackup,
+  webdavDelete,
+  webdavRestore
+} from '../resolve/backup'
 import { getInterfaces } from '../sys/interface'
 import { closeTrayIcon, copyEnv, setDockVisible, showTrayIcon } from '../resolve/tray'
 import { registerShortcut } from '../resolve/shortcut'
@@ -181,6 +191,9 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('disableAutoRun', ipcErrorWrapper(disableAutoRun))
   ipcMain.handle('getAppConfig', (_e, force) => ipcErrorWrapper(getAppConfig)(force))
   ipcMain.handle('patchAppConfig', (_e, config) => ipcErrorWrapper(patchAppConfig)(config))
+  ipcMain.handle('updateProxyGroupState', (_e, profileId, state) =>
+    ipcErrorWrapper(updateProxyGroupState)(profileId, state)
+  )
   ipcMain.handle('getControledMihomoConfig', (_e, force) =>
     ipcErrorWrapper(getControledMihomoConfig)(force)
   )
@@ -255,6 +268,40 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('webdavRestore', (_e, filename) => ipcErrorWrapper(webdavRestore)(filename))
   ipcMain.handle('listWebdavBackups', ipcErrorWrapper(listWebdavBackups))
   ipcMain.handle('webdavDelete', (_e, filename) => ipcErrorWrapper(webdavDelete)(filename))
+  ipcMain.handle(
+    'localBackup',
+    ipcErrorWrapper(async () => {
+      const result = await dialog.showOpenDialog({
+        properties: ['openDirectory'],
+        title: '选择备份位置'
+      })
+      if (result.canceled || !result.filePaths.length) {
+        throw new Error('用户取消操作')
+      }
+      return await localBackup(result.filePaths[0])
+    })
+  )
+  ipcMain.handle('localRestore', (_e, backupDir, filename) =>
+    ipcErrorWrapper(localRestore)(path.join(backupDir, filename))
+  )
+  ipcMain.handle(
+    'listLocalBackups',
+    ipcErrorWrapper(async () => {
+      const result = await dialog.showOpenDialog({
+        properties: ['openDirectory'],
+        title: '选择备份目录'
+      })
+      if (result.canceled || !result.filePaths.length) {
+        throw new Error('用户取消操作')
+      }
+      const backupDir = result.filePaths[0]
+      const files = await listLocalBackups(backupDir)
+      return { backupDir, files }
+    })
+  )
+  ipcMain.handle('localDelete', (_e, backupDir, filename) =>
+    ipcErrorWrapper(localDelete)(backupDir, filename)
+  )
   ipcMain.handle('registerShortcut', (_e, oldShortcut, newShortcut, action) =>
     ipcErrorWrapper(registerShortcut)(oldShortcut, newShortcut, action)
   )

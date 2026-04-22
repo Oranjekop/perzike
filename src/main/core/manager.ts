@@ -38,6 +38,7 @@ import os from 'os'
 import { createWriteStream, existsSync } from 'fs'
 import { uploadRuntimeConfig } from '../resolve/gistApi'
 import { startMonitor } from '../resolve/trafficMonitor'
+import { stopAllProfileUpdaters } from './profileUpdater'
 import { disableSysProxy, triggerSysProxy } from '../sys/sysproxy'
 import { getAxios } from './mihomoApi'
 import { setSysDns } from '../service/api'
@@ -72,6 +73,12 @@ let networkDownHandled = false
 
 let child: ChildProcess
 let retry = 10
+let isRestarting = false
+const RESTART_DELAY = 5000
+
+export function isCoreRestarting(): boolean {
+  return isRestarting
+}
 
 export async function startCore(detached = false): Promise<Promise<void>[]> {
   const {
@@ -162,11 +169,20 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     await writeFile(logPath(), `[Manager]: Core closed, code: ${code}, signal: ${signal}\n`, {
       flag: 'a'
     })
-    if (retry) {
-      await writeFile(logPath(), `[Manager]: Try Restart Core\n`, { flag: 'a' })
+    if (retry && !isRestarting) {
+      isRestarting = true
+      await writeFile(logPath(), `[Manager]: Try Restart Core in ${RESTART_DELAY}ms\n`, {
+        flag: 'a'
+      })
       retry--
-      await restartCore()
-    } else {
+      setTimeout(async () => {
+        try {
+          await restartCore()
+        } finally {
+          isRestarting = false
+        }
+      }, RESTART_DELAY)
+    } else if (!retry) {
       await stopCore()
     }
   })
@@ -197,7 +213,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
         (process.platform === 'win32' && str.includes('RESTful API pipe listening at'))
       ) {
         resolve([
-          new Promise((resolve, reject) => {
+          new Promise((resolve, _reject) => {
             const handleProviderInitialization = async (logLine: string): Promise<void> => {
               for (const match of logLine.matchAll(/Start initial provider ([^"]+)"/g)) {
                 const name = normalize(match[1])
@@ -211,10 +227,15 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
                   'Start TUN listening error: configure tun interface: Connect: operation not permitted'
                 )
               ) {
-                patchControledMihomoConfig({ tun: { enable: false } })
+                await patchControledMihomoConfig({ tun: { enable: false } })
                 mainWindow?.webContents.send('controledMihomoConfigUpdated')
                 ipcMain.emit('updateTrayMenu')
-                reject('虚拟网卡启动失败，前往内核设置页尝试手动授予内核权限')
+                await writeFile(
+                  logPath(),
+                  '[Manager]: TUN 启动失败（权限不足），已自动禁用。如需使用 TUN 模式，请前往内核设置页手动授予权限。\n',
+                  { flag: 'a' }
+                )
+                mainWindow?.webContents.send('tunStartFailed')
               }
 
               const isDefaultProvider = logLine.includes(
@@ -269,6 +290,17 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
 }
 
 export async function stopCore(force = false): Promise<void> {
+  if (setPublicDNSTimer) {
+    clearTimeout(setPublicDNSTimer)
+    setPublicDNSTimer = null
+  }
+  if (recoverDNSTimer) {
+    clearTimeout(recoverDNSTimer)
+    recoverDNSTimer = null
+  }
+  await stopNetworkDetection()
+  stopAllProfileUpdaters()
+
   try {
     if (!force) {
       await recoverDNS()
@@ -385,12 +417,20 @@ async function stopChildProcess(process: ChildProcess): Promise<void> {
 }
 
 export async function restartCore(): Promise<void> {
+  if (isRestarting) {
+    throw new Error('Core is already restarting')
+  }
+  isRestarting = true
   try {
     await stopCore()
+    await new Promise((resolve) => setTimeout(resolve, 1000))
     const promises = await startCore()
     await Promise.all(promises)
   } catch (e) {
     dialog.showErrorBox('内核启动出错', `${e}`)
+    throw e
+  } finally {
+    isRestarting = false
   }
 }
 
@@ -433,12 +473,16 @@ async function checkProfile(): Promise<void> {
     )
   } catch (error) {
     if (error instanceof Error && 'stdout' in error) {
-      const { stdout } = error as { stdout: string }
-      const errorLines = stdout
+      const { stdout, stderr } = error as { stdout: string; stderr?: string }
+      const output = stdout || stderr || ''
+      const errorLines = output
         .split('\n')
         .filter((line) => line.includes('level=error'))
-        .map((line) => line.split('level=error')[1])
-      throw new Error(`Profile Check Failed:\n${errorLines.join('\n')}`)
+        .map((line) => {
+          const parts = line.split('level=error')
+          return parts[1] || line
+        })
+      throw new Error(`Profile Check Failed:\n${errorLines.join('\n') || output}`)
     } else {
       throw error
     }
@@ -543,6 +587,9 @@ export async function revokeCorePermission(cores?: ('mihomo' | 'mihomo-alpha')[]
 }
 
 export async function getDefaultDevice(): Promise<string> {
+  if (process.platform !== 'darwin') {
+    throw new Error('getDefaultDevice is only supported on macOS')
+  }
   const execFilePromise = promisify(execFile)
   const { stdout: deviceOut } = await execFilePromise('route', ['-n', 'get', 'default'])
   let device = deviceOut.split('\n').find((s) => s.includes('interface:'))
@@ -552,6 +599,9 @@ export async function getDefaultDevice(): Promise<string> {
 }
 
 async function getDefaultService(): Promise<string> {
+  if (process.platform !== 'darwin') {
+    throw new Error('getDefaultService is only supported on macOS')
+  }
   const execFilePromise = promisify(execFile)
   const device = await getDefaultDevice()
   const { stdout: order } = await execFilePromise('networksetup', ['-listnetworkserviceorder'])
@@ -590,15 +640,25 @@ async function setDNS(dns: string, mode: 'none' | 'exec' | 'service'): Promise<v
   }
 }
 
+const DNS_RETRY_MAX = 10
+let setPublicDNSRetryCount = 0
+let recoverDNSRetryCount = 0
+
 async function setPublicDNS(): Promise<void> {
   if (process.platform !== 'darwin') return
   if (net.isOnline()) {
+    setPublicDNSRetryCount = 0
     const { originDNS, autoSetDNSMode = 'none' } = await getAppConfig()
     if (!originDNS) {
       await getOriginDNS()
       await setDNS('223.5.5.5', autoSetDNSMode)
     }
   } else {
+    if (setPublicDNSRetryCount >= DNS_RETRY_MAX) {
+      setPublicDNSRetryCount = 0
+      return
+    }
+    setPublicDNSRetryCount++
     if (setPublicDNSTimer) clearTimeout(setPublicDNSTimer)
     setPublicDNSTimer = setTimeout(() => setPublicDNS(), 5000)
   }
@@ -607,12 +667,18 @@ async function setPublicDNS(): Promise<void> {
 async function recoverDNS(): Promise<void> {
   if (process.platform !== 'darwin') return
   if (net.isOnline()) {
+    recoverDNSRetryCount = 0
     const { originDNS, autoSetDNSMode = 'none' } = await getAppConfig()
     if (originDNS) {
       await setDNS(originDNS, autoSetDNSMode)
       await patchAppConfig({ originDNS: undefined })
     }
   } else {
+    if (recoverDNSRetryCount >= DNS_RETRY_MAX) {
+      recoverDNSRetryCount = 0
+      return
+    }
+    recoverDNSRetryCount++
     if (recoverDNSTimer) clearTimeout(recoverDNSTimer)
     recoverDNSTimer = setTimeout(() => recoverDNS(), 5000)
   }
@@ -635,19 +701,21 @@ export async function startNetworkDetection(): Promise<void> {
   )
 
   networkDetectionTimer = setInterval(async () => {
-    if (isAnyNetworkInterfaceUp(extendedBypass) && net.isOnline()) {
-      if ((networkDownHandled && !child) || (child && child.killed)) {
-        const promises = await startCore()
-        await Promise.all(promises)
-        if (sysProxy.enable) triggerSysProxy(true, onlyActiveDevice)
-        networkDownHandled = false
-      }
-    } else {
-      if (!networkDownHandled) {
-        if (sysProxy.enable) disableSysProxy(onlyActiveDevice)
+    try {
+      if (isAnyNetworkInterfaceUp(extendedBypass) && net.isOnline()) {
+        if ((networkDownHandled && !child) || (child && child.killed)) {
+          const promises = await startCore()
+          await Promise.all(promises)
+          if (sysProxy.enable) triggerSysProxy(true, onlyActiveDevice)
+          networkDownHandled = false
+        }
+      } else if (!networkDownHandled) {
+        if (sysProxy.enable) await disableSysProxy(onlyActiveDevice)
         await stopCore()
         networkDownHandled = true
       }
+    } catch (e) {
+      await writeFile(logPath(), `[Manager]: Network detection error: ${e}\n`, { flag: 'a' })
     }
   }, networkDetectionInterval * 1000)
 }

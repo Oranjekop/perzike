@@ -193,6 +193,13 @@ export async function getIconDataURL(appPath: string): Promise<string> {
   }
 
   if (process.platform === 'win32') {
+    if (appPath.startsWith('\\Device\\')) {
+      const { resolveWithDosDeviceMappings } = await import('./devicePathResolver')
+      const resolvedPath = resolveWithDosDeviceMappings(appPath)
+      if (resolvedPath) {
+        appPath = resolvedPath
+      }
+    }
     if (fs.existsSync(appPath) && /\.(exe|dll)$/i.test(appPath)) {
       try {
         let targetPath = appPath
@@ -205,32 +212,40 @@ export async function getIconDataURL(appPath: string): Promise<string> {
           tempLinkPath = path.join(tempDir, `${randomName}${fileExt}`)
 
           try {
-            exec(`mklink "${tempLinkPath}" "${appPath}"`)
-            targetPath = tempLinkPath
+            await new Promise<void>((resolve) => {
+              exec(`mklink "${tempLinkPath}" "${appPath}"`, (error) => {
+                if (!error && tempLinkPath && fs.existsSync(tempLinkPath)) {
+                  targetPath = tempLinkPath
+                }
+                resolve()
+              })
+            })
           } catch {
             // ignore
           }
         }
 
-        const iconBuffer = await new Promise<Buffer>((resolve, reject) => {
-          getIcon(targetPath, (b64d) => {
-            try {
-              resolve(Buffer.from(b64d, 'base64'))
-            } catch (err) {
-              reject(err)
-            }
+        try {
+          const iconBuffer = await new Promise<Buffer>((resolve, reject) => {
+            getIcon(targetPath, (b64d) => {
+              try {
+                resolve(Buffer.from(b64d, 'base64'))
+              } catch (err) {
+                reject(err)
+              }
+            })
           })
-        })
 
-        if (tempLinkPath && fs.existsSync(tempLinkPath)) {
-          try {
-            fs.unlinkSync(tempLinkPath)
-          } catch {
-            // ignore
+          return `data:image/png;base64,${iconBuffer.toString('base64')}`
+        } finally {
+          if (tempLinkPath && fs.existsSync(tempLinkPath)) {
+            try {
+              fs.unlinkSync(tempLinkPath)
+            } catch {
+              // ignore
+            }
           }
         }
-
-        return `data:image/png;base64,${iconBuffer.toString('base64')}`
       } catch {
         return windowsDefaultIcon
       }

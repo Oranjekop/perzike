@@ -3,7 +3,7 @@ import { mihomoProfileWorkDir, mihomoWorkDir, profileConfigPath, profilePath } f
 import { addProfileUpdater, delProfileUpdater } from '../core/profileUpdater'
 import { readFile, writeFile, rm, mkdir } from 'fs/promises'
 import { restartCore } from '../core/manager'
-import { getAppConfig } from './app'
+import { deleteProxyGroupState, getAppConfig } from './app'
 import { existsSync } from 'fs'
 import axios, { AxiosResponse } from 'axios'
 import https from 'https'
@@ -110,6 +110,7 @@ export async function removeProfileItem(id: string): Promise<void> {
   if (existsSync(mihomoProfileWorkDir(id))) {
     await rm(mihomoProfileWorkDir(id), { recursive: true })
   }
+  await deleteProxyGroupState(id)
   await delProfileUpdater(id)
 }
 

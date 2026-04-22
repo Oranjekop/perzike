@@ -114,3 +114,10 @@ export async function delProfileUpdater(id: string): Promise<void> {
     delete intervalPool[id]
   }
 }
+
+export function stopAllProfileUpdaters(): void {
+  for (const id of Object.keys(intervalPool)) {
+    clearTimeout(intervalPool[id])
+    delete intervalPool[id]
+  }
+}

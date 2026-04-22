@@ -121,6 +121,18 @@ export async function patchAppConfig(patch: Partial<AppConfig>): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('patchAppConfig', patch))
 }
 
+export async function updateProxyGroupState(
+  profileId: string,
+  state: {
+    openState?: Record<string, boolean>
+    searchState?: Record<string, string>
+  }
+): Promise<void> {
+  return ipcErrorWrapper(
+    await window.electron.ipcRenderer.invoke('updateProxyGroupState', profileId, state)
+  )
+}
+
 export async function getControledMihomoConfig(force = false): Promise<Partial<MihomoConfig>> {
   return ipcErrorWrapper(
     await window.electron.ipcRenderer.invoke('getControledMihomoConfig', force)
@@ -375,6 +387,26 @@ export async function listWebdavBackups(): Promise<string[]> {
 
 export async function webdavDelete(filename: string): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('webdavDelete', filename))
+}
+
+export async function localBackup(): Promise<string> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('localBackup'))
+}
+
+export async function localRestore(backupDir: string, filename: string): Promise<void> {
+  return ipcErrorWrapper(
+    await window.electron.ipcRenderer.invoke('localRestore', backupDir, filename)
+  )
+}
+
+export async function listLocalBackups(): Promise<{ backupDir: string; files: string[] }> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('listLocalBackups'))
+}
+
+export async function localDelete(backupDir: string, filename: string): Promise<void> {
+  return ipcErrorWrapper(
+    await window.electron.ipcRenderer.invoke('localDelete', backupDir, filename)
+  )
 }
 
 export async function setTitleBarOverlay(overlay: TitleBarOverlayOptions): Promise<void> {

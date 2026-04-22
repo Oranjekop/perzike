@@ -52,9 +52,12 @@ function decryptConfig(config: AppConfig): AppConfig {
     const value = result[field]
     if (value && typeof value === 'string') {
       if (!isEncrypted(value)) {
-        ;(result[field] as string) = ''
-      } else {
+        continue
+      }
+      try {
         ;(result[field] as string) = decryptString(value)
+      } catch {
+        // ignore
       }
     }
   }
@@ -81,12 +84,16 @@ export async function getAppConfig(force = false): Promise<AppConfig> {
       const data = await readFile(appConfigPath(), 'utf-8')
       const parsed = parseYaml<AppConfig>(data)
       if (!parsed || !isValidConfig(parsed)) {
-        const backup = await readFile(`${appConfigPath()}.backup`, 'utf-8')
-        appConfig = decryptConfig(parseYaml<AppConfig>(backup))
+        try {
+          const backup = await readFile(`${appConfigPath()}.backup`, 'utf-8')
+          appConfig = decryptConfig(parseYaml<AppConfig>(backup))
+        } catch {
+          appConfig = defaultConfig
+        }
       } else {
         appConfig = decryptConfig(parsed)
       }
-    } catch (e) {
+    } catch {
       appConfig = defaultConfig
     }
   }
@@ -102,6 +109,36 @@ export async function patchAppConfig(patch: Partial<AppConfig>): Promise<void> {
     await safeWriteConfig(stringifyYaml(encryptConfig(appConfig)))
   })()
   await writePromise
+}
+
+export async function deleteProxyGroupState(profileId: string): Promise<void> {
+  await patchAppConfig({
+    proxyGroupsState: {
+      [`${profileId}-`]: null
+    }
+  } as unknown as Partial<AppConfig>)
+}
+
+export async function updateProxyGroupState(
+  profileId: string,
+  state: {
+    openState?: Record<string, boolean>
+    searchState?: Record<string, string>
+  }
+): Promise<void> {
+  const patch: Record<string, unknown> = {}
+  if (state.openState !== undefined) {
+    patch['openState!'] = state.openState
+  }
+  if (state.searchState !== undefined) {
+    patch['searchState!'] = state.searchState
+  }
+
+  await patchAppConfig({
+    proxyGroupsState: {
+      [profileId]: patch
+    }
+  } as unknown as Partial<AppConfig>)
 }
 
 export function getAppConfigSync(): AppConfig {

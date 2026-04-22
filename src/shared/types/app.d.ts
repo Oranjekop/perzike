@@ -76,6 +76,12 @@ interface AppConfig {
   siderOrder: string[]
   siderWidth: number
   appTheme: AppTheme
+  proxyGroupsState?: {
+    [profileId: string]: {
+      openState?: Record<string, boolean>
+      searchState?: Record<string, string>
+    }
+  }
   autoCheckUpdate: boolean
   silentStart: boolean
   autoCloseConnection: boolean

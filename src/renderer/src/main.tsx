@@ -14,6 +14,7 @@ import { OverrideConfigProvider } from './hooks/use-override-config'
 import { ProfileConfigProvider } from './hooks/use-profile-config'
 import { RulesProvider } from './hooks/use-rules'
 import { GroupsProvider } from './hooks/use-groups'
+import { ProxiesStateProvider } from './hooks/use-proxies-state'
 
 let F12Count = 0
 
@@ -53,9 +54,11 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
                 <ProfileConfigProvider>
                   <OverrideConfigProvider>
                     <GroupsProvider>
-                      <RulesProvider>
-                        <App />
-                      </RulesProvider>
+                      <ProxiesStateProvider>
+                        <RulesProvider>
+                          <App />
+                        </RulesProvider>
+                      </ProxiesStateProvider>
                     </GroupsProvider>
                   </OverrideConfigProvider>
                 </ProfileConfigProvider>
