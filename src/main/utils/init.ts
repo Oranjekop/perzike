@@ -181,6 +181,10 @@ async function migration(): Promise<void> {
     }
   }
 
+  if (appConfig.core === 'system') {
+    appConfigPatch.core = 'mihomo'
+  }
+
   if (Object.keys(appConfigPatch).length > 0) {
     await patchAppConfig(appConfigPatch)
   }
