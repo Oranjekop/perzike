@@ -8,7 +8,7 @@ import {
   mihomoProxyDelay
 } from '@renderer/utils/ipc'
 import { FaLocationCrosshairs } from 'react-icons/fa6'
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react'
 import { GroupedVirtuoso, GroupedVirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
@@ -19,6 +19,18 @@ import { useProxiesState } from '@renderer/hooks/use-proxies-state'
 import CollapseInput from '@renderer/components/base/collapse-input'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
+
+const calcAutoProxyCols = (): number => {
+  if (window.matchMedia('(min-width: 1536px)').matches) {
+    return 5
+  } else if (window.matchMedia('(min-width: 1280px)').matches) {
+    return 4
+  } else if (window.matchMedia('(min-width: 1024px)').matches) {
+    return 3
+  } else {
+    return 2
+  }
+}
 
 const Proxies: React.FC = () => {
   const { controledMihomoConfig } = useControledMihomoConfig()
@@ -37,7 +49,9 @@ const Proxies: React.FC = () => {
     delayTestUrlScope = 'group',
     delayTestConcurrency = 50
   } = appConfig || {}
-  const [cols, setCols] = useState(1)
+  const [cols, setCols] = useState(() =>
+    proxyCols !== 'auto' ? parseInt(proxyCols) : calcAutoProxyCols()
+  )
   const [delaying, setDelaying] = useState<Map<string, boolean>>(new Map())
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const [pendingScrollIndex, setPendingScrollIndex] = useState<number | null>(null)
@@ -158,18 +172,6 @@ const Proxies: React.FC = () => {
     [allProxies, visibleGroups, delayTestConcurrency, mutate, getDelayTestUrl, setIsOpen]
   )
 
-  const calcCols = useCallback((): number => {
-    if (window.matchMedia('(min-width: 1536px)').matches) {
-      return 5
-    } else if (window.matchMedia('(min-width: 1280px)').matches) {
-      return 4
-    } else if (window.matchMedia('(min-width: 1024px)').matches) {
-      return 3
-    } else {
-      return 2
-    }
-  }, [])
-
   const toggleOpen = useCallback(
     (index: number) => {
       const group = visibleGroups[index]
@@ -237,20 +239,20 @@ const Proxies: React.FC = () => {
     })
   }, [pendingScrollIndex, visibleGroups, isOpenMap, scrollToCurrentProxy])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (proxyCols !== 'auto') {
       setCols(parseInt(proxyCols))
       return
     }
-    setCols(calcCols())
+    setCols(calcAutoProxyCols())
     const handleResize = (): void => {
-      setCols(calcCols())
+      setCols(calcAutoProxyCols())
     }
     window.addEventListener('resize', handleResize)
     return (): void => {
       window.removeEventListener('resize', handleResize)
     }
-  }, [proxyCols, calcCols])
+  }, [proxyCols])
 
   useEffect(() => {
     let cancelled = false
