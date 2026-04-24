@@ -9,7 +9,12 @@ import {
 } from '@renderer/utils/ipc'
 import { FaLocationCrosshairs } from 'react-icons/fa6'
 import { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react'
-import { GroupedVirtuoso, GroupedVirtuosoHandle } from 'react-virtuoso'
+import {
+  GroupedVirtuoso,
+  GroupedVirtuosoHandle,
+  GroupProps,
+  ContextProp
+} from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
 import { IoIosArrowBack } from 'react-icons/io'
@@ -30,6 +35,26 @@ const calcAutoProxyCols = (): number => {
   } else {
     return 2
   }
+}
+
+const groupedVirtuosoComponents = {
+  Group: ({
+    children,
+    context: _context,
+    style,
+    ...props
+  }: GroupProps & ContextProp<unknown>): React.ReactElement => (
+    <div
+      {...props}
+      style={{
+        ...style,
+        position: 'relative',
+        zIndex: 'auto'
+      }}
+    >
+      {children}
+    </div>
+  )
 }
 
 const Proxies: React.FC = () => {
@@ -455,6 +480,7 @@ const Proxies: React.FC = () => {
         <div className="h-[calc(100vh-50px)]">
           <GroupedVirtuoso
             ref={virtuosoRef}
+            components={groupedVirtuosoComponents}
             groupCounts={groupCounts}
             groupContent={groupContent}
             itemContent={itemContent}
