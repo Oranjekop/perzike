@@ -1,3 +1,4 @@
+!ifndef BUILD_UNINSTALLER
 Var PerzikeHadDesktopShortcut
 Var PerzikeHadExistingInstall
 
@@ -29,3 +30,4 @@ Var PerzikeHadExistingInstall
     ${endif}
   ${endif}
 !macroend
+!endif
