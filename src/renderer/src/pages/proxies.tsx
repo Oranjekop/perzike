@@ -1,4 +1,4 @@
-import { Avatar, Button, Card, CardBody, Chip } from '@heroui/react'
+import { Button, Card, CardBody, Chip } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {
@@ -10,10 +10,8 @@ import {
 import { FaLocationCrosshairs } from 'react-icons/fa6'
 import { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react'
 import {
-  GroupedVirtuoso,
-  GroupedVirtuosoHandle,
-  GroupProps,
-  ContextProp
+  Virtuoso,
+  VirtuosoHandle
 } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
@@ -37,25 +35,16 @@ const calcAutoProxyCols = (): number => {
   }
 }
 
-const groupedVirtuosoComponents = {
-  Group: ({
-    children,
-    context: _context,
-    style,
-    ...props
-  }: GroupProps & ContextProp<unknown>): React.ReactElement => (
-    <div
-      {...props}
-      style={{
-        ...style,
-        position: 'relative',
-        zIndex: 'auto'
-      }}
-    >
-      {children}
-    </div>
-  )
-}
+type ProxyListRow =
+  | {
+      type: 'group'
+      groupIndex: number
+    }
+  | {
+      type: 'proxies'
+      groupIndex: number
+      rowIndex: number
+    }
 
 const Proxies: React.FC = () => {
   const { controledMihomoConfig } = useControledMihomoConfig()
@@ -80,7 +69,8 @@ const Proxies: React.FC = () => {
   const [delaying, setDelaying] = useState<Map<string, boolean>>(new Map())
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const [pendingScrollIndex, setPendingScrollIndex] = useState<number | null>(null)
-  const virtuosoRef = useRef<GroupedVirtuosoHandle>(null)
+  const [iconCacheVersion, setIconCacheVersion] = useState(0)
+  const virtuosoRef = useRef<VirtuosoHandle>(null)
   const visibleGroups = useMemo(() => {
     if (!showGlobalByMode) return groups
     if (mode === 'global') return groups.filter((group) => group.name === 'GLOBAL')
@@ -123,6 +113,15 @@ const Proxies: React.FC = () => {
     })
     return { groupCounts: counts, allProxies: proxiesByGroup }
   }, [visibleGroups, isOpenMap, searchValueMap, proxyDisplayOrder, cols])
+  const rows = useMemo<ProxyListRow[]>(() => {
+    return visibleGroups.flatMap((_, groupIndex) => {
+      const groupRows: ProxyListRow[] = [{ type: 'group', groupIndex }]
+      for (let rowIndex = 0; rowIndex < groupCounts[groupIndex]; rowIndex++) {
+        groupRows.push({ type: 'proxies', groupIndex, rowIndex })
+      }
+      return groupRows
+    })
+  }, [visibleGroups, groupCounts])
 
   const onChangeProxy = useCallback(
     async (group: string, proxy: string): Promise<void> => {
@@ -222,10 +221,10 @@ const Proxies: React.FC = () => {
 
       let rowIndex = 0
       for (let i = 0; i < targetIndex; i++) {
-        rowIndex += groupCounts[i]
+        rowIndex += 1 + groupCounts[i]
       }
       const currentProxyIndex = allProxies[targetIndex].findIndex((proxy) => proxy.name === group.now)
-      rowIndex += Math.max(0, Math.floor(currentProxyIndex / cols))
+      rowIndex += 1 + Math.max(0, Math.floor(currentProxyIndex / cols))
       virtuosoRef.current?.scrollToIndex({
         index: rowIndex,
         align: 'start'
@@ -287,14 +286,24 @@ const Proxies: React.FC = () => {
       getImageDataURL(group.icon).then((dataURL) => {
         if (cancelled) return
         localStorage.setItem(group.icon!, dataURL)
-        mutate()
+        setIconCacheVersion((version) => version + 1)
       })
     })
 
     return (): void => {
       cancelled = true
     }
-  }, [visibleGroups, mutate])
+  }, [visibleGroups])
+
+  const getGroupIconSrc = useCallback(
+    (icon: string) => {
+      if (icon.startsWith('<svg')) {
+        return `data:image/svg+xml;utf8,${icon}`
+      }
+      return localStorage.getItem(icon) || icon
+    },
+    [iconCacheVersion]
+  )
 
   const groupContent = useCallback(
     (index: number) => {
@@ -311,15 +320,11 @@ const Proxies: React.FC = () => {
               <div className="flex justify-between h-full">
                 <div className="flex items-center text-ellipsis overflow-hidden whitespace-nowrap h-full">
                   {group.icon ? (
-                    <Avatar
-                      className="bg-transparent mr-2 w-6 h-6 min-w-6 self-center"
-                      classNames={{ img: 'object-contain' }}
-                      radius="sm"
-                      src={
-                        group.icon.startsWith('<svg')
-                          ? `data:image/svg+xml;utf8,${group.icon}`
-                          : localStorage.getItem(group.icon) || group.icon
-                      }
+                    <img
+                      alt=""
+                      draggable={false}
+                      className="mr-2 h-6 w-6 min-w-6 self-center rounded-small object-contain"
+                      src={getGroupIconSrc(group.icon)}
                     />
                   ) : null}
                   <div
@@ -395,6 +400,7 @@ const Proxies: React.FC = () => {
       searchValueMap,
       groupDisplayLayout,
       delaying,
+      getGroupIconSrc,
       toggleOpen,
       updateSearchValue,
       handleLocateCurrentProxy,
@@ -402,12 +408,12 @@ const Proxies: React.FC = () => {
     ]
   )
 
-  const itemContent = useCallback(
-    (index: number, groupIndex: number) => {
-      let innerIndex = index
-      groupCounts.slice(0, groupIndex).forEach((count) => {
-        innerIndex -= count
-      })
+  const rowContent = useCallback(
+    (_index: number, row: ProxyListRow) => {
+      if (row.type === 'group') {
+        return groupContent(row.groupIndex)
+      }
+      const { groupIndex, rowIndex } = row
       return allProxies[groupIndex] ? (
         <div
           style={
@@ -415,10 +421,10 @@ const Proxies: React.FC = () => {
               ? { gridTemplateColumns: `repeat(${proxyCols}, minmax(0, 1fr))` }
               : {}
           }
-          className={`grid ${proxyCols === 'auto' ? 'sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5' : ''} ${groupIndex === groupCounts.length - 1 && innerIndex === groupCounts[groupIndex] - 1 ? 'pb-2' : ''} gap-2 pt-2 mx-2`}
+          className={`grid ${proxyCols === 'auto' ? 'sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5' : ''} ${groupIndex === groupCounts.length - 1 && rowIndex === groupCounts[groupIndex] - 1 ? 'pb-2' : ''} gap-2 pt-2 mx-2`}
         >
           {Array.from({ length: cols }).map((_, columnIndex) => {
-            const proxy = allProxies[groupIndex][innerIndex * cols + columnIndex]
+            const proxy = allProxies[groupIndex][rowIndex * cols + columnIndex]
             if (!proxy) return null
             const isSelected = proxy.name === visibleGroups[groupIndex].now
             return (
@@ -442,6 +448,7 @@ const Proxies: React.FC = () => {
     [
       allProxies,
       groupCounts,
+      groupContent,
       proxyCols,
       cols,
       mutate,
@@ -478,12 +485,15 @@ const Proxies: React.FC = () => {
         </div>
       ) : (
         <div className="h-[calc(100vh-50px)]">
-          <GroupedVirtuoso
+          <Virtuoso
             ref={virtuosoRef}
-            components={groupedVirtuosoComponents}
-            groupCounts={groupCounts}
-            groupContent={groupContent}
-            itemContent={itemContent}
+            data={rows}
+            computeItemKey={(_, row) =>
+              row.type === 'group'
+                ? `group-${visibleGroups[row.groupIndex]?.name ?? row.groupIndex}`
+                : `proxies-${visibleGroups[row.groupIndex]?.name ?? row.groupIndex}-${row.rowIndex}`
+            }
+            itemContent={rowContent}
           />
         </div>
       )}
