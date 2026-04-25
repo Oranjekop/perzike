@@ -41,6 +41,7 @@ import {
   type ServiceCoreEvent,
   type ServiceCoreLaunchProfile
 } from '../service/api'
+import { startService as startPerzikeService } from '../service/manager'
 import { appendAppLog, createLogWritable, setMihomoLogSource } from '../utils/log'
 import { createCoreHookWaiter, createCoreStartupHook } from './startupHook'
 import { stopChildProcess } from './process-control'
@@ -199,6 +200,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   let serviceCoreRunning = false
   if (useServiceCore) {
     try {
+      await startPerzikeService()
       await getCoreStatus()
       serviceCoreRunning = true
     } catch (error) {
