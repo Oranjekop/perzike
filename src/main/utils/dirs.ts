@@ -85,14 +85,22 @@ export function mihomoCoreDir(): string {
   return path.join(resourcesDir(), 'sidecar')
 }
 
+export function mihomoUserCoreDir(): string {
+  return path.join(dataDir(), 'sidecar')
+}
+
 export function mihomoCorePath(core: string): string {
   if (core === 'mihomo' || core === 'mihomo-alpha') {
     const isWin = process.platform === 'win32'
     const coreName = `${core}${isWin ? '.exe' : ''}`
-    const currentPath = path.join(mihomoCoreDir(), coreName)
+    const userCorePath = path.join(mihomoUserCoreDir(), coreName)
+    const bundledCorePath = path.join(mihomoCoreDir(), coreName)
 
-    if (canExecute(currentPath)) {
-      return currentPath
+    const candidatePaths = [userCorePath, bundledCorePath]
+    for (const candidatePath of candidatePaths) {
+      if (canExecute(candidatePath)) {
+        return candidatePath
+      }
     }
 
     if (is.dev) {
@@ -108,7 +116,7 @@ export function mihomoCorePath(core: string): string {
       }
     }
 
-    return currentPath
+    return existsSync(bundledCorePath) ? bundledCorePath : userCorePath
   }
   if (core === 'system') {
     const sysPath = systemCorePath()

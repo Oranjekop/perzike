@@ -140,6 +140,7 @@ async function resolveSidecar(binInfo) {
   const sidecarPath = path.join(sidecarDir, targetFile)
 
   fs.mkdirSync(sidecarDir, { recursive: true })
+  ensureWindowsDirectoryAccess(sidecarDir)
   if (fs.existsSync(sidecarPath)) {
     fs.rmSync(sidecarPath)
   }
@@ -205,10 +206,29 @@ async function resolveSidecar(binInfo) {
     ensureWindowsExecutableAccess(sidecarPath)
   } catch (err) {
     // 需要删除文件
-    fs.rmSync(sidecarPath)
+    if (fs.existsSync(sidecarPath)) {
+      fs.rmSync(sidecarPath)
+    }
     throw err
   } finally {
     fs.rmSync(tempDir, { recursive: true })
+  }
+}
+
+function ensureWindowsDirectoryAccess(targetPath) {
+  if (platform !== 'win32') {
+    return
+  }
+
+  try {
+    execFileSync('icacls.exe', [targetPath, '/grant', '*S-1-5-32-545:(OI)(CI)RX'], {
+      stdio: 'ignore'
+    })
+  } catch (error) {
+    console.warn(
+      `[WARN]: failed to grant read/execute permission for "${targetPath}":`,
+      error.message
+    )
   }
 }
 

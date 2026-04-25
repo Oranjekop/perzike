@@ -78,6 +78,25 @@ Var PerzikeServiceWasRunning
   ${EndIf}
 !macroend
 
+!macro GrantPerzikeSidecarAccess DIR
+  DetailPrint "Granting Perzike sidecar access: ${DIR}\resources\sidecar"
+  nsExec::ExecToLog '"$SYSDIR\icacls.exe" "${DIR}\resources\sidecar" /grant *S-1-5-32-545:(OI)(CI)RX /T /C'
+  Pop $R2
+  ${If} $R2 != 0
+    DetailPrint "Grant sidecar access exited with code $R2"
+  ${EndIf}
+!macroend
+
+!macro RemovePerzikeSidecar DIR
+  ${If} "${DIR}" != ""
+    ${If} ${FileExists} "${DIR}\resources\sidecar"
+      !insertmacro GrantPerzikeSidecarAccess "${DIR}"
+      DetailPrint "Removing old Perzike sidecar: ${DIR}\resources\sidecar"
+      RMDir /r "${DIR}\resources\sidecar"
+    ${EndIf}
+  ${EndIf}
+!macroend
+
 !macro customInit
   StrCpy $PerzikeServiceWasRunning "false"
   !insertmacro StopPerzikeServiceIfRunning
@@ -91,6 +110,7 @@ Var PerzikeServiceWasRunning
   StrCpy $PerzikeHadExistingInstall "false"
   ${if} $1 != ""
     StrCpy $PerzikeHadExistingInstall "true"
+    !insertmacro RemovePerzikeSidecar "$1"
   ${endif}
 
   StrCpy $PerzikeHadDesktopShortcut "false"
@@ -101,6 +121,8 @@ Var PerzikeServiceWasRunning
 !macroend
 
 !macro customInstall
+  !insertmacro GrantPerzikeSidecarAccess "$INSTDIR"
+
   ${If} $PerzikeServiceWasRunning == "true"
     StrCpy $R1 "$INSTDIR\resources\files\perzike-service.exe"
     ${If} ${FileExists} "$R1"
