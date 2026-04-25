@@ -231,7 +231,7 @@ const EditableList: React.FC<EditableListProps> = ({
                 <Button
                   size="sm"
                   variant="flat"
-                  color="warning"
+                  color="danger"
                   onPress={() => handleUpdate(idx, '', '')}
                 >
                   <MdDeleteForever className="text-lg" />

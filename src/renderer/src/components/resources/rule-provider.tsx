@@ -140,6 +140,8 @@ const RuleProvider: React.FC = () => {
                 <Button
                   isIconOnly
                   title={provider.vehicleType == 'File' ? '编辑' : '查看'}
+                  color="primary"
+                  variant="flat"
                   className="ml-2"
                   size="sm"
                   onPress={() => {
@@ -163,6 +165,8 @@ const RuleProvider: React.FC = () => {
               <Button
                 isIconOnly
                 title="更新"
+                color="primary"
+                variant="flat"
                 className="ml-2"
                 size="sm"
                 onPress={() => {

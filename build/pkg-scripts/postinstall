@@ -11,4 +11,20 @@ chmod +s "$APP_PATH/Contents/Resources/sidecar/mihomo-alpha"
   --preserve-metadata=identifier,entitlements,requirements,flags,runtime \
   "$APP_PATH"
 
+restore_perzike_service_if_was_running() {
+  SERVICE_BIN="$1"
+  SERVICE_STATE_FILE="/tmp/perzike-service-was-running"
+
+  if [ ! -f "$SERVICE_STATE_FILE" ]; then
+    return
+  fi
+  rm -f "$SERVICE_STATE_FILE" 2>/dev/null || true
+
+  if [ -x "$SERVICE_BIN" ]; then
+    "$SERVICE_BIN" service start >/dev/null 2>&1 || true
+  fi
+}
+
+restore_perzike_service_if_was_running "$APP_PATH/Contents/Resources/files/perzike-service"
+
 exit 0

@@ -108,7 +108,29 @@ function systemCorePath(): string {
 
 export function servicePath(): string {
   const isWin = process.platform === 'win32'
-  return path.join(resourcesFilesDir(), `perzike-service${isWin ? '.exe' : ''}`)
+  const serviceName = `perzike-service${isWin ? '.exe' : ''}`
+  const currentPath = path.join(resourcesFilesDir(), serviceName)
+
+  if (existsSync(currentPath)) {
+    return currentPath
+  }
+
+  if (is.dev) {
+    const packagedPath = path.join(
+      __dirname,
+      '../../dist/win-unpacked/resources/files',
+      serviceName
+    )
+    if (existsSync(packagedPath)) {
+      return packagedPath
+    }
+  }
+
+  return currentPath
+}
+
+export function serviceAuthStorePath(): string {
+  return path.join(dataDir(), 'service-auth.json')
 }
 
 export function appConfigPath(): string {
@@ -167,16 +189,26 @@ export function logDir(): string {
   return path.join(dataDir(), 'logs')
 }
 
-export function logPath(): string {
+function datedLogPath(prefix?: string): string {
   const date = new Date()
   const name = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
-  return path.join(logDir(), `${name}.log`)
+  return path.join(logDir(), `${prefix ? `${prefix}-` : ''}${name}.log`)
+}
+
+export function logPath(): string {
+  return datedLogPath()
+}
+
+export function appLogPath(): string {
+  return datedLogPath('app')
+}
+
+export function coreLogPath(): string {
+  return datedLogPath('core')
 }
 
 export function substoreLogPath(): string {
-  const date = new Date()
-  const name = `sub-store-${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
-  return path.join(logDir(), `${name}.log`)
+  return datedLogPath('sub-store')
 }
 
 function hasCommand(command: string): boolean {

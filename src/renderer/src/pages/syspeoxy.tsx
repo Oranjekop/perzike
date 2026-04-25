@@ -154,6 +154,10 @@ const Sysproxy: React.FC = () => {
             size="sm"
             color="primary"
             selectedKey={values.mode}
+            classNames={{
+              cursor: 'bg-primary',
+              tabContent: 'group-data-[selected=true]:text-primary-foreground'
+            }}
             onSelectionChange={(key: Key) => setValues({ ...values, mode: key as SysProxyMode })}
           >
             <Tab key="manual" title="手动" />
@@ -164,6 +168,7 @@ const Sysproxy: React.FC = () => {
           <SettingItem title="UWP 工具" divider>
             <Button
               size="sm"
+              color="primary"
               onPress={async () => {
                 await openUWPTool()
               }}
@@ -179,6 +184,10 @@ const Sysproxy: React.FC = () => {
                 size="sm"
                 color="primary"
                 selectedKey={values.settingMode}
+                classNames={{
+                  cursor: 'bg-primary',
+                  tabContent: 'group-data-[selected=true]:text-primary-foreground'
+                }}
                 onSelectionChange={(key) => {
                   setValues({ ...values, settingMode: key as 'exec' | 'service' })
                 }}
@@ -217,7 +226,7 @@ const Sysproxy: React.FC = () => {
         )}
         {values.mode === 'auto' && (
           <SettingItem title="代理模式">
-            <Button size="sm" onPress={() => setOpenPacEditor(true)}>
+            <Button size="sm" color="primary" onPress={() => setOpenPacEditor(true)}>
               编辑 PAC 脚本
             </Button>
           </SettingItem>
@@ -227,6 +236,7 @@ const Sysproxy: React.FC = () => {
             <SettingItem title="添加默认代理绕过" divider>
               <Button
                 size="sm"
+                color="primary"
                 onPress={() => {
                   setValues({
                     ...values,
@@ -240,6 +250,7 @@ const Sysproxy: React.FC = () => {
             <SettingItem title="代理绕过列表">
               <Button
                 size="sm"
+                color="primary"
                 onPress={async () => {
                   setOpenEditor(true)
                 }}

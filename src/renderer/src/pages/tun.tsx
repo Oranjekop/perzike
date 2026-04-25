@@ -113,6 +113,10 @@ const Tun: React.FC = () => {
                 size="sm"
                 color="primary"
                 selectedKey={autoSetDNSMode}
+                classNames={{
+                  cursor: 'bg-primary',
+                  tabContent: 'group-data-[selected=true]:text-primary-foreground'
+                }}
                 onSelectionChange={async (key: Key) => {
                   await patchAppConfig({ autoSetDNSMode: key as 'none' | 'exec' | 'service' })
                 }}
@@ -128,6 +132,10 @@ const Tun: React.FC = () => {
               size="sm"
               color="primary"
               selectedKey={values.stack}
+              classNames={{
+                cursor: 'bg-primary',
+                tabContent: 'group-data-[selected=true]:text-primary-foreground'
+              }}
               onSelectionChange={(key: Key) => setValues({ ...values, stack: key as TunStack })}
             >
               <Tab key="gvisor" title="gVisor" />

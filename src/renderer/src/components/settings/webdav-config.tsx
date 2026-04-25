@@ -94,14 +94,24 @@ const WebdavConfig: React.FC = () => {
             }}
           />
         </SettingItem>
-        <div className="flex justify0between">
-          <Button isLoading={backuping} fullWidth size="sm" className="mr-1" onPress={handleBackup}>
+        <div className="flex justify-between">
+          <Button
+            isLoading={backuping}
+            fullWidth
+            size="sm"
+            color="primary"
+            variant="flat"
+            className="mr-1"
+            onPress={handleBackup}
+          >
             备份
           </Button>
           <Button
             isLoading={restoring}
             fullWidth
             size="sm"
+            color="primary"
+            variant="flat"
             className="ml-1"
             onPress={handleRestore}
           >

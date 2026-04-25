@@ -63,6 +63,7 @@ interface AppConfig {
   autoLightweight?: boolean
   autoLightweightDelay?: number
   autoLightweightMode?: 'core' | 'tray'
+  coreStartupMode?: 'post-up' | 'log'
   useCustomSubStore?: boolean
   useProxyInSubStore?: boolean
   mihomoCpuPriority?: Priority
@@ -88,7 +89,11 @@ interface AppConfig {
   closeMode: 'all' | 'group'
   showGlobalByMode?: boolean
   sysProxy: ISysProxyConfig
+  saveLogs?: boolean
   maxLogDays: number
+  maxLogFileSizeMB?: number
+  maxLogEntries?: number
+  realtimeLogLevel?: LogLevel
   userAgent?: string
   delayTestConcurrency?: number
   delayTestUrl?: string
