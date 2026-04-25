@@ -155,6 +155,8 @@ const ProxyProvider: React.FC = () => {
                 <Button
                   isIconOnly
                   title="二维码"
+                  color="primary"
+                  variant="flat"
                   className="ml-2"
                   size="sm"
                   onPress={() => onShowQrCode(provider.name)}
@@ -165,6 +167,8 @@ const ProxyProvider: React.FC = () => {
               <Button
                 isIconOnly
                 title={provider.vehicleType == 'File' ? '编辑' : '查看'}
+                color="primary"
+                variant="flat"
                 className="ml-2"
                 size="sm"
                 onPress={() => {
@@ -186,6 +190,8 @@ const ProxyProvider: React.FC = () => {
               <Button
                 isIconOnly
                 title="更新"
+                color="primary"
+                variant="flat"
                 className="ml-2"
                 size="sm"
                 onPress={() => {

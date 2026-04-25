@@ -169,6 +169,10 @@ const DNS: React.FC = () => {
             size="sm"
             color="primary"
             selectedKey={values.enhancedMode}
+            classNames={{
+              cursor: 'bg-primary',
+              tabContent: 'group-data-[selected=true]:text-primary-foreground'
+            }}
             onSelectionChange={(key: Key) => setValues({ ...values, enhancedMode: key as DnsMode })}
           >
             <Tab key="fake-ip" title="虚假 IP" />

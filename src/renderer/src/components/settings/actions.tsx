@@ -85,13 +85,14 @@ const Actions: React.FC = () => {
       )}
       <SettingCard>
         <SettingItem title="打开引导页面" divider>
-          <Button size="sm" onPress={() => startTour(navigate)}>
+          <Button size="sm" color="primary" onPress={() => startTour(navigate)}>
             打开引导页面
           </Button>
         </SettingItem>
         <SettingItem title="检查更新" divider>
           <Button
             size="sm"
+            color="primary"
             isLoading={checkingUpdate}
             onPress={async () => {
               try {
@@ -125,7 +126,7 @@ const Actions: React.FC = () => {
           }
           divider
         >
-          <Button size="sm" onPress={() => setConfirmOpen(true)}>
+          <Button size="sm" color="primary" onPress={() => setConfirmOpen(true)}>
             重置软件
           </Button>
         </SettingItem>
@@ -140,7 +141,7 @@ const Actions: React.FC = () => {
           }
           divider
         >
-          <Button size="sm" onPress={() => localStorage.clear()}>
+          <Button size="sm" color="primary" onPress={() => localStorage.clear()}>
             清除缓存
           </Button>
         </SettingItem>
@@ -155,7 +156,7 @@ const Actions: React.FC = () => {
           }
           divider
         >
-          <Button size="sm" onPress={createHeapSnapshot}>
+          <Button size="sm" color="primary" onPress={createHeapSnapshot}>
             创建堆快照
           </Button>
         </SettingItem>
@@ -170,12 +171,12 @@ const Actions: React.FC = () => {
           }
           divider
         >
-          <Button size="sm" onPress={quitWithoutCore}>
+          <Button size="sm" color="primary" onPress={quitWithoutCore}>
             退出
           </Button>
         </SettingItem>
         <SettingItem title="退出应用" divider>
-          <Button size="sm" onPress={quitApp}>
+          <Button size="sm" color="primary" onPress={quitApp}>
             退出应用
           </Button>
         </SettingItem>

@@ -235,6 +235,14 @@ export async function restartCore(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('restartCore'))
 }
 
+export async function stopCore(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('stopCore'))
+}
+
+export async function restartMihomoLogs(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('restartMihomoLogs'))
+}
+
 export async function restartMihomoConnections(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('restartMihomoConnections'))
 }
@@ -243,9 +251,13 @@ export async function startMonitor(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('startMonitor'))
 }
 
-export async function triggerSysProxy(enable: boolean, onlyActiveDevice: boolean): Promise<void> {
+export async function triggerSysProxy(
+  enable: boolean,
+  onlyActiveDevice: boolean,
+  useRegistry?: boolean
+): Promise<void> {
   return ipcErrorWrapper(
-    await window.electron.ipcRenderer.invoke('triggerSysProxy', enable, onlyActiveDevice)
+    await window.electron.ipcRenderer.invoke('triggerSysProxy', enable, onlyActiveDevice, useRegistry)
   )
 }
 
@@ -274,7 +286,7 @@ export async function revokeCorePermission(cores?: ('mihomo' | 'mihomo-alpha')[]
 }
 
 export async function serviceStatus(): Promise<
-  'running' | 'stopped' | 'not-installed' | 'unknown'
+  'running' | 'stopped' | 'not-installed' | 'paused' | 'unknown' | 'need-init'
 > {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('serviceStatus'))
 }
@@ -305,6 +317,14 @@ export async function restartService(): Promise<void> {
 
 export async function stopService(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('stopService'))
+}
+
+export async function getCachedMihomoLogs(): Promise<ControllerLog[]> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getCachedMihomoLogs'))
+}
+
+export async function clearCachedMihomoLogs(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('clearCachedMihomoLogs'))
 }
 
 export async function findSystemMihomo(): Promise<string[]> {
