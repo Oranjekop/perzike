@@ -237,7 +237,7 @@ async function waitForServicePing(timeoutMs = 15000): Promise<void> {
 }
 
 function serviceCommandArgs(command: string, args: string[] = []): string[] {
-  return ['--listen', serviceIpcPath(), 'service', command, ...args]
+  return ['service', command, '--listen', serviceIpcPath(), ...args]
 }
 
 async function execServiceCommandWithElevation(
@@ -269,7 +269,7 @@ async function ensureWindowsServiceListenConfig(): Promise<boolean> {
     return false
   }
 
-  if (binPath.includes('--listen') && binPath.includes(serviceIpcPath())) {
+  if (binPath.includes('service run --listen') && binPath.includes(serviceIpcPath())) {
     return false
   }
 
@@ -277,7 +277,7 @@ async function ensureWindowsServiceListenConfig(): Promise<boolean> {
     'config',
     windowsServiceName,
     'binPath=',
-    `"${servicePath()}" --listen "${serviceIpcPath()}" service run`
+    `"${servicePath()}" service run --listen "${serviceIpcPath()}"`
   ])
   return true
 }
