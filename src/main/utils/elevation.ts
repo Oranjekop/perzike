@@ -28,6 +28,18 @@ function appleScriptQuote(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
+function windowsArgQuote(arg: string): string {
+  if (arg.length === 0) {
+    return '""'
+  }
+
+  return `"${arg.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/g, '$1$1')}"`
+}
+
+function windowsArgumentList(args: string[]): string {
+  return args.map(windowsArgQuote).join(' ')
+}
+
 export async function execWithElevation(command: string, args: string[]): Promise<void> {
   if (process.platform === 'win32') {
     try {
@@ -35,12 +47,7 @@ export async function execWithElevation(command: string, args: string[]): Promis
         await execFilePromise(command, args, { timeout: 30000 })
       } else {
         const escapedCommand = command.replace(/'/g, "''")
-        const psArgs = args
-          .map((arg) => {
-            const escaped = arg.replace(/'/g, "''")
-            return `'${escaped}'`
-          })
-          .join(',')
+        const escapedArgs = windowsArgumentList(args).replace(/'/g, "''")
         await execFilePromise(
           'powershell.exe',
           [
@@ -48,7 +55,7 @@ export async function execWithElevation(command: string, args: string[]): Promis
             '-ExecutionPolicy',
             'Bypass',
             '-Command',
-            `& { $p = Start-Process -FilePath '${escapedCommand}' -ArgumentList @(${psArgs}) -Verb RunAs -WindowStyle Hidden -PassThru -Wait; exit $p.ExitCode }`
+            `& { $p = Start-Process -FilePath '${escapedCommand}' -ArgumentList '${escapedArgs}' -Verb RunAs -WindowStyle Hidden -PassThru -Wait; exit $p.ExitCode }`
           ],
           { timeout: 30000 }
         )

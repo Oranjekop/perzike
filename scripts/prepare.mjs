@@ -4,7 +4,7 @@ import AdmZip from 'adm-zip'
 import path from 'path'
 import zlib from 'zlib'
 import { extract } from 'tar'
-import { execSync } from 'child_process'
+import { execFileSync, execSync } from 'child_process'
 
 const cwd = process.cwd()
 const TEMP_DIR = path.join(cwd, 'node_modules/.temp')
@@ -201,12 +201,26 @@ async function resolveSidecar(binInfo) {
           .on('error', onError)
       })
     }
+
+    ensureWindowsExecutableAccess(sidecarPath)
   } catch (err) {
     // 需要删除文件
     fs.rmSync(sidecarPath)
     throw err
   } finally {
     fs.rmSync(tempDir, { recursive: true })
+  }
+}
+
+function ensureWindowsExecutableAccess(targetPath) {
+  if (platform !== 'win32') {
+    return
+  }
+
+  try {
+    execFileSync('icacls.exe', [targetPath, '/grant', '*S-1-5-32-545:RX'], { stdio: 'ignore' })
+  } catch (error) {
+    console.warn(`[WARN]: failed to grant read/execute permission for "${targetPath}":`, error.message)
   }
 }
 

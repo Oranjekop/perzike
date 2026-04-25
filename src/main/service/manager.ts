@@ -15,6 +15,8 @@ import {
 let keyManager: KeyManager | null = null
 const execFilePromise = promisify(execFile)
 const windowsServiceName = 'SparkleService'
+const windowsServiceNameCandidates = [windowsServiceName, 'Sparkle Service']
+type WindowsServiceState = 'running' | 'stopped' | 'paused' | 'not-installed' | 'unknown'
 
 function parseLegacyServiceAuth(value: string): ServiceAuthSecret | null {
   try {
@@ -247,39 +249,96 @@ async function execServiceCommandWithElevation(
   await execWithElevation(servicePath(), serviceCommandArgs(command, args))
 }
 
-async function getWindowsServiceBinPath(): Promise<string | null> {
+async function getWindowsServiceBinPath(): Promise<{ name: string; binPath: string } | null> {
   if (process.platform !== 'win32') {
     return null
   }
 
-  try {
-    const { stdout } = await execFilePromise('sc.exe', ['qc', windowsServiceName], {
-      timeout: 5000
-    })
-    const match = stdout.match(/BINARY_PATH_NAME\s*:\s*(.+)/)
-    return match?.[1]?.trim() || null
-  } catch {
-    return null
+  for (const name of windowsServiceNameCandidates) {
+    try {
+      const { stdout } = await execFilePromise('sc.exe', ['qc', name], {
+        timeout: 5000
+      })
+      const match = stdout.match(/BINARY_PATH_NAME\s*:\s*(.+)/)
+      const binPath = match?.[1]?.trim()
+      if (binPath) {
+        return { name, binPath }
+      }
+    } catch {
+      // Try the next historical service name.
+    }
   }
+
+  return null
+}
+
+async function getWindowsServiceState(): Promise<WindowsServiceState> {
+  if (process.platform !== 'win32') {
+    return 'unknown'
+  }
+
+  for (const name of windowsServiceNameCandidates) {
+    try {
+      const { stdout } = await execFilePromise('sc.exe', ['query', name], {
+        timeout: 5000
+      })
+      if (stdout.includes('RUNNING')) {
+        return 'running'
+      }
+      if (stdout.includes('STOPPED')) {
+        return 'stopped'
+      }
+      if (stdout.includes('PAUSED')) {
+        return 'paused'
+      }
+      return 'unknown'
+    } catch {
+      // Try the next historical service name.
+    }
+  }
+
+  return 'not-installed'
 }
 
 async function ensureWindowsServiceListenConfig(): Promise<boolean> {
-  const binPath = await getWindowsServiceBinPath()
-  if (!binPath) {
+  const serviceInfo = await getWindowsServiceBinPath()
+  if (!serviceInfo) {
     return false
   }
 
-  if (binPath.includes('service run --listen') && binPath.includes(serviceIpcPath())) {
+  if (isWindowsServiceListenConfigCurrent(serviceInfo.binPath)) {
     return false
   }
 
   await execWithElevation('sc.exe', [
     'config',
-    windowsServiceName,
+    serviceInfo.name,
     'binPath=',
     `"${servicePath()}" service run --listen "${serviceIpcPath()}"`
   ])
+
+  const updatedServiceInfo = await getWindowsServiceBinPath()
+  if (
+    !updatedServiceInfo ||
+    !isWindowsServiceListenConfigCurrent(updatedServiceInfo.binPath)
+  ) {
+    throw new Error('服务启动参数更新失败，无法切换到 Perzike 服务管道')
+  }
+
   return true
+}
+
+function isWindowsServiceListenConfigCurrent(binPath: string): boolean {
+  return binPath.includes('service run --listen') && binPath.includes(serviceIpcPath())
+}
+
+async function ensureServiceInstalledAfterCommand(): Promise<void> {
+  const status = await serviceStatus()
+  if (status === 'not-installed') {
+    throw new Error(
+      '服务安装命令已执行，但系统仍显示未安装。请确认已同意管理员权限弹窗，或以管理员身份运行 Perzike 后重试；如果仍失败，可能是安全软件拦截了服务注册。'
+    )
+  }
 }
 
 export async function initService(): Promise<void> {
@@ -308,7 +367,11 @@ export async function initService(): Promise<void> {
 export async function installService(): Promise<void> {
   try {
     await execServiceCommandWithElevation('install')
-    await ensureWindowsServiceListenConfig()
+    await ensureServiceInstalledAfterCommand()
+    const serviceConfigChanged = await ensureWindowsServiceListenConfig()
+    if (serviceConfigChanged && (await getWindowsServiceState()) === 'running') {
+      await execServiceCommandWithElevation('restart')
+    }
   } catch (error) {
     if (isUserCancelledError(error)) {
       throw new UserCancelledError()
@@ -331,7 +394,10 @@ export async function uninstallService(): Promise<void> {
 export async function startService(): Promise<void> {
   try {
     const serviceConfigChanged = await ensureWindowsServiceListenConfig()
-    await execServiceCommandWithElevation(serviceConfigChanged ? 'restart' : 'start')
+    const serviceState = await getWindowsServiceState()
+    await execServiceCommandWithElevation(
+      serviceConfigChanged || serviceState === 'running' ? 'restart' : 'start'
+    )
   } catch (error) {
     if (isUserCancelledError(error)) {
       throw new UserCancelledError()

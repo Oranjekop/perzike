@@ -1,5 +1,5 @@
 import { is } from './electron-utils'
-import { existsSync, mkdirSync, readdirSync } from 'fs'
+import { accessSync, constants, existsSync, mkdirSync, readdirSync } from 'fs'
 import { app } from 'electron'
 import path from 'path'
 import { execSync } from 'child_process'
@@ -88,7 +88,27 @@ export function mihomoCoreDir(): string {
 export function mihomoCorePath(core: string): string {
   if (core === 'mihomo' || core === 'mihomo-alpha') {
     const isWin = process.platform === 'win32'
-    return path.join(mihomoCoreDir(), `${core}${isWin ? '.exe' : ''}`)
+    const coreName = `${core}${isWin ? '.exe' : ''}`
+    const currentPath = path.join(mihomoCoreDir(), coreName)
+
+    if (canExecute(currentPath)) {
+      return currentPath
+    }
+
+    if (is.dev) {
+      const devFallbackPaths = [
+        path.join(__dirname, '../../dist/win-unpacked/resources/sidecar', coreName),
+        path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Perzike/resources/sidecar', coreName)
+      ]
+
+      for (const fallbackPath of devFallbackPaths) {
+        if (canExecute(fallbackPath)) {
+          return fallbackPath
+        }
+      }
+    }
+
+    return currentPath
   }
   if (core === 'system') {
     const sysPath = systemCorePath()
@@ -99,6 +119,15 @@ export function mihomoCorePath(core: string): string {
     return sysPath
   }
   throw new Error('内核路径错误')
+}
+
+function canExecute(filePath: string): boolean {
+  try {
+    accessSync(filePath, constants.X_OK)
+    return true
+  } catch {
+    return false
+  }
 }
 
 function systemCorePath(): string {
