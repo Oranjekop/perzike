@@ -17,7 +17,6 @@
     "prepare": "node scripts/prepare.mjs",
     "updater": "node scripts/updater.mjs",
     "checksum": "node scripts/checksum.mjs",
-    "telegram": "node scripts/telegram.mjs",
     "artifact": "node scripts/artifact.mjs",
     "dev": "electron-vite dev",
     "postinstall": "electron-builder install-app-deps",

@@ -1,9 +1,12 @@
 import yaml from 'yaml'
-import { readFileSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 
 const pkg = readFileSync('package.json', 'utf-8')
-let changelog = readFileSync('changelog.md', 'utf-8')
 const { version } = JSON.parse(pkg)
+const releaseNotesFile = process.env.RELEASE_NOTES_FILE || 'release-notes.md'
+let changelog = existsSync(releaseNotesFile)
+  ? readFileSync(releaseNotesFile, 'utf-8')
+  : `## ${version}\n\n### 更新内容\n\n- 发布 ${version}\n`
 const refTag = process.env.RELEASE_TAG || process.env.GITHUB_REF_NAME
 const releaseTag = refTag === version || refTag === `v${version}` ? refTag : version
 const downloadUrl = `https://github.com/Oranjekop/perzike/releases/download/${releaseTag}`
@@ -23,4 +26,4 @@ if (process.env.SKIP_CHANGELOG !== '1') {
   changelog += `- PACMAN：[64位](${downloadUrl}/perzike-linux-${version}-x64.pkg.tar.zst) | [ARM64](${downloadUrl}/perzike-linux-${version}-aarch64.pkg.tar.zst) | [loong64](${downloadUrl}/perzike-linux-${version}-loong64.pkg.tar.zst)`
 }
 writeFileSync('latest.yml', yaml.stringify(latest))
-writeFileSync('changelog.md', changelog)
+writeFileSync(releaseNotesFile, changelog)
