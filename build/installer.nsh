@@ -123,7 +123,13 @@
 
 !macro customInit
   StrCpy $PerzikeServiceWasRunning "false"
-  !insertmacro StopPerzikeServiceIfRunning
+  ${If} ${Silent}
+  ${AndIf} $hasPerMachineInstallation == "1"
+  ${AndIfNot} ${UAC_IsAdmin}
+    DetailPrint "Deferring Perzike service stop until the elevated installer instance"
+  ${Else}
+    !insertmacro StopPerzikeServiceIfRunning
+  ${EndIf}
 
   ReadRegStr $0 SHELL_CONTEXT "${INSTALL_REGISTRY_KEY}" ShortcutName
   ${if} $0 == ""

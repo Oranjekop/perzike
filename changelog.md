@@ -1,3 +1,9 @@
+## 26.4.18
+
+### Changed
+
+- 修复 Windows 静默更新时外层非管理员安装器过早停止系统服务，导致 `Perzike service is still running` 并中断安装的问题；服务停止会延后到提权后的安装器实例执行
+
 ## 26.4.17
 
 ### Changed
