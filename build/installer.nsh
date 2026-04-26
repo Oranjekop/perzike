@@ -90,37 +90,6 @@
   ${EndIf}
 !macroend
 
-!macro ResetPerzikeSidecarAccess DIR
-  DetailPrint "Taking ownership of old Perzike sidecar: ${DIR}\resources\sidecar"
-  nsExec::ExecToLog '"$SYSDIR\takeown.exe" /F "${DIR}\resources\sidecar" /A /R /D Y'
-  Pop $R2
-  ${If} $R2 != 0
-    DetailPrint "Take ownership exited with code $R2"
-  ${EndIf}
-
-  DetailPrint "Resetting old Perzike sidecar ACL: ${DIR}\resources\sidecar"
-  nsExec::ExecToLog '"$SYSDIR\icacls.exe" "${DIR}\resources\sidecar" /reset /T /C'
-  Pop $R2
-  ${If} $R2 != 0
-    DetailPrint "Reset sidecar ACL exited with code $R2"
-  ${EndIf}
-
-  !insertmacro GrantPerzikeSidecarAccess "${DIR}"
-!macroend
-
-!macro RemovePerzikeSidecar DIR
-  ${If} "${DIR}" != ""
-    !insertmacro ResetPerzikeSidecarAccess "${DIR}"
-    DetailPrint "Removing old Perzike sidecar: ${DIR}\resources\sidecar"
-    nsExec::ExecToLog `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "if (Test-Path -LiteralPath '${DIR}\resources\sidecar') { Remove-Item -LiteralPath '${DIR}\resources\sidecar' -Recurse -Force -ErrorAction Stop }"`
-    Pop $R2
-    ${If} $R2 != 0
-      MessageBox MB_ICONSTOP "Failed to remove old Perzike sidecar directory: ${DIR}\resources\sidecar. Please close Perzike and run the installer as administrator."
-      Abort
-    ${EndIf}
-  ${EndIf}
-!macroend
-
 !macro customInit
   StrCpy $PerzikeServiceWasRunning "false"
   ${If} ${Silent}
@@ -140,9 +109,7 @@
   StrCpy $PerzikeHadExistingInstall "false"
   ${if} $1 != ""
     StrCpy $PerzikeHadExistingInstall "true"
-    !insertmacro RemovePerzikeSidecar "$1"
   ${endif}
-  !insertmacro RemovePerzikeSidecar "$INSTDIR"
 
   StrCpy $PerzikeHadDesktopShortcut "false"
   ${if} ${FileExists} "$DESKTOP\$0.lnk"
