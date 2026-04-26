@@ -1,10 +1,13 @@
-import { serviceIpcPath, servicePath } from '../utils/dirs'
+import { mihomoCoreDir, serviceIpcPath, servicePath } from '../utils/dirs'
 import { execWithElevation } from '../utils/elevation'
 import { KeyManager, type KeyPair, computeKeyId } from './key'
 import { initServiceAPI, getServiceAxios, ping, test, ServiceAPIError } from './api'
 import { getAppConfig, patchAppConfig } from '../config/app'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
+import { access } from 'fs/promises'
+import { constants } from 'fs'
+import path from 'path'
 import {
   canPersistServiceAuthSecret,
   loadServiceAuthSecret,
@@ -16,6 +19,7 @@ let keyManager: KeyManager | null = null
 const execFilePromise = promisify(execFile)
 const windowsServiceName = 'SparkleService'
 const windowsServiceNameCandidates = [windowsServiceName, 'Sparkle Service']
+const skipCoreAclHardeningEnv = 'SPARKLE_SKIP_CORE_ACL_HARDENING=1'
 type WindowsServiceState = 'running' | 'stopped' | 'paused' | 'not-installed' | 'unknown'
 
 function parseLegacyServiceAuth(value: string): ServiceAuthSecret | null {
@@ -300,36 +304,152 @@ async function getWindowsServiceState(): Promise<WindowsServiceState> {
   return 'not-installed'
 }
 
+function parseWindowsServiceExecutable(binPath: string): string {
+  const trimmed = binPath.trim()
+  const quotedMatch = trimmed.match(/^"([^"]+)"/)
+  if (quotedMatch) {
+    return quotedMatch[1]
+  }
+
+  const exeIndex = trimmed.toLowerCase().indexOf('.exe')
+  if (exeIndex >= 0) {
+    return trimmed.slice(0, exeIndex + 4)
+  }
+
+  return trimmed.split(/\s+/)[0] || ''
+}
+
+function normalizeWindowsPath(value: string): string {
+  return path
+    .normalize(value)
+    .replace(/[\\/]+$/, '')
+    .toLowerCase()
+}
+
+function isWindowsServiceExecutablePathCurrent(binPath: string): boolean {
+  return (
+    normalizeWindowsPath(parseWindowsServiceExecutable(binPath)) ===
+    normalizeWindowsPath(servicePath())
+  )
+}
+
+function isWindowsServiceListenConfigCurrent(binPath: string): boolean {
+  return binPath.includes('service run --listen') && binPath.includes(serviceIpcPath())
+}
+
+function isWindowsServiceConfigCurrent(binPath: string): boolean {
+  return (
+    isWindowsServiceExecutablePathCurrent(binPath) && isWindowsServiceListenConfigCurrent(binPath)
+  )
+}
+
+async function isWindowsServiceCoreAclHardeningDisabled(serviceName: string): Promise<boolean> {
+  if (process.platform !== 'win32') {
+    return true
+  }
+
+  try {
+    const { stdout } = await execFilePromise(
+      'reg.exe',
+      ['query', `HKLM\\SYSTEM\\CurrentControlSet\\Services\\${serviceName}`, '/v', 'Environment'],
+      { timeout: 5000 }
+    )
+    return stdout.includes(skipCoreAclHardeningEnv)
+  } catch {
+    return false
+  }
+}
+
+async function ensureWindowsServiceCoreAclHardeningDisabled(serviceName: string): Promise<boolean> {
+  if (process.platform !== 'win32') {
+    return false
+  }
+
+  if (await isWindowsServiceCoreAclHardeningDisabled(serviceName)) {
+    return false
+  }
+
+  await execWithElevation('reg.exe', [
+    'add',
+    `HKLM\\SYSTEM\\CurrentControlSet\\Services\\${serviceName}`,
+    '/v',
+    'Environment',
+    '/t',
+    'REG_MULTI_SZ',
+    '/d',
+    skipCoreAclHardeningEnv,
+    '/f'
+  ])
+
+  return true
+}
+
+async function hasBundledCoreAccess(): Promise<boolean> {
+  if (process.platform !== 'win32') {
+    return true
+  }
+
+  const coreDir = mihomoCoreDir()
+  try {
+    await access(coreDir, constants.R_OK)
+    await Promise.all([
+      access(path.join(coreDir, 'mihomo.exe'), constants.R_OK),
+      access(path.join(coreDir, 'mihomo-alpha.exe'), constants.R_OK)
+    ])
+    return true
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+    return code === 'ENOENT'
+  }
+}
+
+export async function repairBundledCoreAccess(): Promise<boolean> {
+  if (process.platform !== 'win32') {
+    return false
+  }
+
+  if (await hasBundledCoreAccess()) {
+    return false
+  }
+
+  await execWithElevation('icacls.exe', [
+    mihomoCoreDir(),
+    '/inheritance:e',
+    '/grant',
+    '*S-1-5-32-545:(OI)(CI)RX',
+    '/T',
+    '/C'
+  ])
+
+  return true
+}
+
 async function ensureWindowsServiceListenConfig(): Promise<boolean> {
   const serviceInfo = await getWindowsServiceBinPath()
   if (!serviceInfo) {
     return false
   }
 
-  if (isWindowsServiceListenConfigCurrent(serviceInfo.binPath)) {
-    return false
+  let changed = false
+
+  if (!isWindowsServiceConfigCurrent(serviceInfo.binPath)) {
+    await execWithElevation('sc.exe', [
+      'config',
+      serviceInfo.name,
+      'binPath=',
+      `"${servicePath()}" service run --listen "${serviceIpcPath()}"`
+    ])
+    changed = true
   }
 
-  await execWithElevation('sc.exe', [
-    'config',
-    serviceInfo.name,
-    'binPath=',
-    `"${servicePath()}" service run --listen "${serviceIpcPath()}"`
-  ])
+  changed = (await ensureWindowsServiceCoreAclHardeningDisabled(serviceInfo.name)) || changed
 
   const updatedServiceInfo = await getWindowsServiceBinPath()
-  if (
-    !updatedServiceInfo ||
-    !isWindowsServiceListenConfigCurrent(updatedServiceInfo.binPath)
-  ) {
+  if (!updatedServiceInfo || !isWindowsServiceConfigCurrent(updatedServiceInfo.binPath)) {
     throw new Error('服务启动参数更新失败，无法切换到 Perzike 服务管道')
   }
 
-  return true
-}
-
-function isWindowsServiceListenConfigCurrent(binPath: string): boolean {
-  return binPath.includes('service run --listen') && binPath.includes(serviceIpcPath())
+  return changed
 }
 
 async function ensureServiceInstalledAfterCommand(): Promise<void> {
@@ -347,6 +467,7 @@ export async function initService(): Promise<void> {
 
   try {
     const serviceConfigChanged = await ensureWindowsServiceListenConfig()
+    await repairBundledCoreAccess()
     const principalArgs = await getAuthorizedPrincipalArgs()
     await execServiceCommandWithElevation('init', [
       '--public-key',
@@ -369,6 +490,7 @@ export async function installService(): Promise<void> {
     await execServiceCommandWithElevation('install')
     await ensureServiceInstalledAfterCommand()
     const serviceConfigChanged = await ensureWindowsServiceListenConfig()
+    await repairBundledCoreAccess()
     if (serviceConfigChanged && (await getWindowsServiceState()) === 'running') {
       await execServiceCommandWithElevation('restart')
     }
@@ -394,6 +516,7 @@ export async function uninstallService(): Promise<void> {
 export async function startService(): Promise<void> {
   try {
     const serviceConfigChanged = await ensureWindowsServiceListenConfig()
+    await repairBundledCoreAccess()
     const serviceState = await getWindowsServiceState()
     await execServiceCommandWithElevation(
       serviceConfigChanged || serviceState === 'running' ? 'restart' : 'start'
@@ -425,6 +548,7 @@ export async function stopService(): Promise<void> {
 export async function restartService(): Promise<void> {
   try {
     await ensureWindowsServiceListenConfig()
+    await repairBundledCoreAccess()
     await execServiceCommandWithElevation('restart')
   } catch (error) {
     if (isUserCancelledError(error)) {

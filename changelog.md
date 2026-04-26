@@ -1,3 +1,12 @@
+## 26.4.16
+
+### Changed
+
+- 修复 Windows 服务模式启动内核后 `resources\sidecar` 被服务加固为普通用户不可访问，导致直接运行或系统服务模式报 `spawn ENOENT/EPERM` 的问题
+- 启动内核和管理服务前会检测并修复已损坏的内置内核目录权限，恢复安装目录下 `mihomo.exe` 与 `mihomo-alpha.exe` 的可读执行权限
+- 修正旧服务注册项迁移逻辑，发现服务仍指向开发目录或旧启动参数时会自动更新到安装目录的 `perzike-service.exe`
+- 移除 Windows 下复制内核到用户数据目录的 fallback，内置内核路径重新与 Sparkle 保持一致，固定使用安装目录的 `resources\sidecar`
+
 ## 26.4.15
 
 ### Changed

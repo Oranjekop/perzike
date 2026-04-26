@@ -41,7 +41,7 @@ import {
   type ServiceCoreEvent,
   type ServiceCoreLaunchProfile
 } from '../service/api'
-import { startService as startPerzikeService } from '../service/manager'
+import { repairBundledCoreAccess, startService as startPerzikeService } from '../service/manager'
 import { appendAppLog, createLogWritable, setMihomoLogSource } from '../utils/log'
 import { createCoreHookWaiter, createCoreStartupHook } from './startupHook'
 import { stopChildProcess } from './process-control'
@@ -183,6 +183,14 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   const { current } = await getProfileConfig()
   const useServiceCore = corePermissionMode === 'service' && !detached
   const effectiveCoreStartupMode = process.platform === 'win32' ? 'log' : coreStartupMode
+
+  if (process.platform === 'win32' && (core === 'mihomo' || core === 'mihomo-alpha')) {
+    try {
+      await repairBundledCoreAccess()
+    } catch (error) {
+      await appendAppLog(`[Manager]: repair bundled core access failed, ${error}\n`)
+    }
+  }
 
   let corePath: string
   try {

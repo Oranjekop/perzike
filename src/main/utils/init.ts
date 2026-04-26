@@ -4,8 +4,6 @@ import {
   dataDir,
   logDir,
   mihomoTestDir,
-  mihomoCoreDir,
-  mihomoUserCoreDir,
   mihomoWorkDir,
   overrideConfigPath,
   overrideDir,
@@ -23,7 +21,7 @@ import {
   defaultProfileConfig
 } from './template'
 import { stringifyYaml } from './yaml'
-import { mkdir, writeFile, cp, rm, readdir, copyFile, chmod, stat } from 'fs/promises'
+import { mkdir, writeFile, cp, rm, readdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 import {
@@ -111,50 +109,6 @@ async function initFiles(): Promise<void> {
     copy('sub-store.bundle.js'),
     copy('sub-store-frontend')
   ])
-}
-
-async function initCoreFiles(): Promise<void> {
-  const sourceDir = mihomoCoreDir()
-  const targetDir = mihomoUserCoreDir()
-  if (sourceDir === targetDir) {
-    return
-  }
-
-  await mkdir(targetDir, { recursive: true })
-
-  const isWin = process.platform === 'win32'
-  const coreFiles = [`mihomo${isWin ? '.exe' : ''}`, `mihomo-alpha${isWin ? '.exe' : ''}`]
-
-  await Promise.all(
-    coreFiles.map(async (file) => {
-      const sourcePath = path.join(sourceDir, file)
-      const targetPath = path.join(targetDir, file)
-      if (!existsSync(sourcePath)) {
-        return
-      }
-
-      try {
-        const [sourceStat, targetStat] = await Promise.all([
-          stat(sourcePath),
-          stat(targetPath).catch(() => undefined)
-        ])
-        if (
-          targetStat &&
-          targetStat.size === sourceStat.size &&
-          targetStat.mtimeMs >= sourceStat.mtimeMs
-        ) {
-          return
-        }
-
-        await copyFile(sourcePath, targetPath)
-        if (!isWin) {
-          await chmod(targetPath, 0o755)
-        }
-      } catch {
-        // keep the bundled path fallback when resources are not readable
-      }
-    })
-  )
 }
 
 async function cleanup(): Promise<void> {
@@ -261,7 +215,7 @@ function initDeeplink(): void {
 
 export async function init(): Promise<void> {
   await initDirs()
-  await Promise.all([initConfig(), initFiles(), initCoreFiles()])
+  await Promise.all([initConfig(), initFiles()])
   await migration()
 
   const [appConfig] = await Promise.all([

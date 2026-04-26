@@ -4,7 +4,7 @@ import { app } from 'electron'
 import path from 'path'
 import { execSync } from 'child_process'
 import { getAppConfigSync } from '../config/app'
-import { checkCorePermissionSync } from '../core/manager'
+import { checkCorePermissionPathSync } from '../core/permission-check'
 
 export const homeDir = app.getPath('home')
 
@@ -68,7 +68,7 @@ export function mihomoIpcPath(): string {
   if (core === 'system') {
     return '/tmp/perzike-mihomo-external.sock'
   }
-  if (!checkCorePermissionSync(core as 'mihomo' | 'mihomo-alpha')) {
+  if (!checkCorePermissionPathSync(mihomoCorePath(core))) {
     return '/tmp/perzike-mihomo-api-noperm.sock'
   }
   return '/tmp/perzike-mihomo-api.sock'
@@ -85,28 +85,24 @@ export function mihomoCoreDir(): string {
   return path.join(resourcesDir(), 'sidecar')
 }
 
-export function mihomoUserCoreDir(): string {
-  return path.join(dataDir(), 'sidecar')
-}
-
 export function mihomoCorePath(core: string): string {
   if (core === 'mihomo' || core === 'mihomo-alpha') {
     const isWin = process.platform === 'win32'
     const coreName = `${core}${isWin ? '.exe' : ''}`
-    const userCorePath = path.join(mihomoUserCoreDir(), coreName)
-    const bundledCorePath = path.join(mihomoCoreDir(), coreName)
+    const currentPath = path.join(mihomoCoreDir(), coreName)
 
-    const candidatePaths = [userCorePath, bundledCorePath]
-    for (const candidatePath of candidatePaths) {
-      if (canExecute(candidatePath)) {
-        return candidatePath
-      }
+    if (canExecute(currentPath)) {
+      return currentPath
     }
 
     if (is.dev) {
       const devFallbackPaths = [
         path.join(__dirname, '../../dist/win-unpacked/resources/sidecar', coreName),
-        path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Perzike/resources/sidecar', coreName)
+        path.join(
+          process.env.ProgramFiles || 'C:\\Program Files',
+          'Perzike/resources/sidecar',
+          coreName
+        )
       ]
 
       for (const fallbackPath of devFallbackPaths) {
@@ -116,7 +112,7 @@ export function mihomoCorePath(core: string): string {
       }
     }
 
-    return existsSync(bundledCorePath) ? bundledCorePath : userCorePath
+    return currentPath
   }
   if (core === 'system') {
     const sysPath = systemCorePath()
