@@ -81,6 +81,8 @@ let serviceCoreStreamsStarting: Promise<void> | null = null
 let lastServiceCoreEventKey = ''
 let serviceCoreStartupActive = false
 let serviceCoreReconnectResumePromise: Promise<void> | null = null
+let restartCoreTask: Promise<void> | null = null
+let restartCoreRequested = false
 const serviceConnectionRetryTimeout = 10000
 const serviceConnectionRetryInterval = 500
 
@@ -694,13 +696,34 @@ function isServiceConnectionError(error: unknown): boolean {
   ].some((fragment) => message.toLowerCase().includes(fragment.toLowerCase()))
 }
 
-export async function restartCore(): Promise<void> {
+async function restartCoreOnce(): Promise<void> {
   try {
     await stopCore()
     const promises = await startCore()
     await Promise.all(promises)
   } catch (e) {
     dialog.showErrorBox('内核启动出错', `${e}`)
+  }
+}
+
+export async function restartCore(): Promise<void> {
+  if (restartCoreTask) {
+    restartCoreRequested = true
+    return restartCoreTask
+  }
+
+  restartCoreTask = (async () => {
+    do {
+      restartCoreRequested = false
+      await restartCoreOnce()
+    } while (restartCoreRequested)
+  })()
+
+  try {
+    await restartCoreTask
+  } finally {
+    restartCoreTask = null
+    restartCoreRequested = false
   }
 }
 

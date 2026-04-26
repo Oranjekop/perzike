@@ -6,7 +6,7 @@ import { dataDir, exeDir, exePath, isPortable, resourcesFilesDir } from '../util
 import { copyFile, rm, writeFile, readFile } from 'fs/promises'
 import path from 'path'
 import { existsSync } from 'fs'
-import { exec, spawn } from 'child_process'
+import { exec, execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 import { createHash } from 'crypto'
 import { setNotQuitDialog, mainWindow } from '..'
@@ -25,6 +25,32 @@ interface GithubRelease {
   draft: boolean
   prerelease: boolean
   assets: GithubReleaseAsset[]
+}
+
+function quotePowerShellString(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`
+}
+
+function quoteWindowsArgument(value: string): string {
+  if (value === '') return '""'
+  if (!/[ \t"]/.test(value)) return value
+
+  return `"${value.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/g, '$1$1')}"`
+}
+
+async function launchWindowsInstaller(installerPath: string, args: string[]): Promise<void> {
+  const execFilePromise = promisify(execFile)
+  const argumentList = args.map(quoteWindowsArgument).join(' ')
+  const command = [
+    "$ErrorActionPreference = 'Stop'",
+    `Start-Process -FilePath ${quotePowerShellString(installerPath)} -ArgumentList ${quotePowerShellString(argumentList)} -Verb RunAs -WindowStyle Hidden`
+  ].join('; ')
+
+  await execFilePromise(
+    'powershell.exe',
+    ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command],
+    { timeout: 120000 }
+  )
 }
 
 function createAxiosConfig(
@@ -207,12 +233,11 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
       progress: 100
     })
 
-    disableSysProxy(false)
+    await disableSysProxy(false).catch(() => undefined)
     if (file.endsWith('.exe')) {
-      spawn(path.join(dataDir(), file), ['/S', '--force-run'], {
-        detached: true,
-        stdio: 'ignore'
-      }).unref()
+      await launchWindowsInstaller(path.join(dataDir(), file), ['/S', '--force-run'])
+      setNotQuitDialog()
+      app.quit()
     }
     if (file.endsWith('.7z')) {
       await copyFile(path.join(resourcesFilesDir(), '7za.exe'), path.join(dataDir(), '7za.exe'))

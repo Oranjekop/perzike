@@ -25,6 +25,7 @@ protocols:
     - 'mihomo'
     - 'perzike'
 win:
+  icon: build/icon.ico
   target:
     - nsis
     - 7z
@@ -34,7 +35,8 @@ nsis:
   uninstallDisplayName: ${productName}
   allowToChangeInstallationDirectory: true
   oneClick: false
-  perMachine: true
+  perMachine: false
+  selectPerMachineByDefault: true
   createDesktopShortcut: true
 mac:
   target:

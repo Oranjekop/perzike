@@ -23,7 +23,7 @@ import {
   stopService,
   uninstallService
 } from '@renderer/utils/ipc'
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import ControllerSetting from '@renderer/components/mihomo/controller-setting'
 import EnvSetting from '@renderer/components/mihomo/env-setting'
 import AdvancedSetting from '@renderer/components/mihomo/advanced-settings'
@@ -40,6 +40,8 @@ const Mihomo: React.FC = () => {
   const { ipv6 } = controledMihomoConfig || {}
 
   const [upgrading, setUpgrading] = useState(false)
+  const [permissionModeChanging, setPermissionModeChanging] = useState(false)
+  const permissionModeChangingRef = useRef(false)
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [showServiceModal, setShowServiceModal] = useState(false)
 
@@ -79,9 +81,24 @@ const Mihomo: React.FC = () => {
   }
 
   const handlePermissionModeChange = async (mode: 'elevated' | 'service'): Promise<void> => {
-    await patchAppConfig({ corePermissionMode: mode })
-    await restartCore()
-    PubSub.publish('mihomo-core-changed')
+    if (permissionModeChangingRef.current || mode === corePermissionMode) {
+      return
+    }
+
+    permissionModeChangingRef.current = true
+    setPermissionModeChanging(true)
+    try {
+      await patchAppConfig({ corePermissionMode: mode })
+      await restartCore()
+      PubSub.publish('mihomo-core-changed')
+    } catch (e) {
+      alert(e)
+    } finally {
+      window.setTimeout(() => {
+        permissionModeChangingRef.current = false
+        setPermissionModeChanging(false)
+      }, 800)
+    }
   }
 
   return (
@@ -187,6 +204,7 @@ const Mihomo: React.FC = () => {
             size="sm"
             color="primary"
             selectedKey={corePermissionMode}
+            isDisabled={permissionModeChanging}
             classNames={{
               cursor: 'bg-primary',
               tabContent: 'group-data-[selected=true]:text-primary-foreground'
