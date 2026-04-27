@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SERVICE_NAME='SparkleService'
+SERVICE_NAME='PerzikeService'
 STATE_DIR='/run/perzike'
 STATE_FILE="$STATE_DIR/service-was-running"
 PID_FILES="/var/run/$SERVICE_NAME.pid /run/$SERVICE_NAME.pid"

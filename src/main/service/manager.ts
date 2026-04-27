@@ -22,7 +22,7 @@ const windowsServiceNameCandidates = [windowsServiceName, 'Perzike Service']
 const skipCoreAclHardeningEnv = 'PERZIKE_SKIP_CORE_ACL_HARDENING=1'
 const skipCoreAclHardeningEnvCandidates = [
   skipCoreAclHardeningEnv,
-  'SPARKLE_SKIP_CORE_ACL_HARDENING=1'
+  'PERZIKE_SKIP_CORE_ACL_HARDENING=1'
 ]
 type WindowsServiceState = 'running' | 'stopped' | 'paused' | 'not-installed' | 'unknown'
 

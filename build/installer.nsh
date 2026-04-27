@@ -22,7 +22,7 @@
 !macroend
 
 !macro QueryPerzikeServiceState RESULT
-  nsExec::ExecToStack '"$SYSDIR\sc.exe" query SparkleService'
+  nsExec::ExecToStack '"$SYSDIR\sc.exe" query PerzikeService'
   Pop $R2
   Pop $R3
 
@@ -74,7 +74,7 @@
   ${AndIf} $R1 != "not-installed"
     StrCpy $PerzikeServiceWasRunning "true"
     DetailPrint "Stopping Perzike service"
-    nsExec::ExecToStack '"$SYSDIR\sc.exe" stop SparkleService'
+    nsExec::ExecToStack '"$SYSDIR\sc.exe" stop PerzikeService'
     Pop $R2
     Pop $R3
     !insertmacro WaitPerzikeServiceStopped

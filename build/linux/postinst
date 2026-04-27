@@ -21,7 +21,7 @@ if [ -d '/opt/perzike/resources/files/sub-store-frontend' ]; then
 fi
 
 restore_perzike_service_if_was_running() {
-    SERVICE_NAME='SparkleService'
+    SERVICE_NAME='PerzikeService'
     STATE_FILE='/run/perzike/service-was-running'
 
     if [ ! -f "$STATE_FILE" ]; then
