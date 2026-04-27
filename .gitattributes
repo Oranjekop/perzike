@@ -1,0 +1,3 @@
+build/*.nsh text eol=lf
+build/linux/* text eol=lf
+build/pkg-scripts/* text eol=lf

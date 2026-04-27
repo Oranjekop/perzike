@@ -20,26 +20,6 @@ if [ -d '/opt/perzike/resources/files/sub-store-frontend' ]; then
     chmod -R go-w '/opt/perzike/resources/files/sub-store-frontend' 2>/dev/null || true
 fi
 
-restore_perzike_service_if_was_running() {
-    SERVICE_NAME='PerzikeService'
-    STATE_FILE='/run/perzike/service-was-running'
-
-    if [ ! -f "$STATE_FILE" ]; then
-        return
-    fi
-    rm -f "$STATE_FILE" 2>/dev/null || true
-
-    if command -v systemctl >/dev/null 2>&1; then
-        systemctl start "$SERVICE_NAME" >/dev/null 2>&1 || true
-    elif command -v service >/dev/null 2>&1; then
-        service "$SERVICE_NAME" start >/dev/null 2>&1 || true
-    elif [ -x "/etc/init.d/$SERVICE_NAME" ]; then
-        "/etc/init.d/$SERVICE_NAME" start >/dev/null 2>&1 || true
-    fi
-}
-
-restore_perzike_service_if_was_running
-
 if hash update-mime-database 2>/dev/null; then
     update-mime-database /usr/share/mime || true
 fi
