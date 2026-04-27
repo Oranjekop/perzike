@@ -17,9 +17,13 @@ import {
 
 let keyManager: KeyManager | null = null
 const execFilePromise = promisify(execFile)
-const windowsServiceName = 'SparkleService'
-const windowsServiceNameCandidates = [windowsServiceName, 'Sparkle Service']
-const skipCoreAclHardeningEnv = 'SPARKLE_SKIP_CORE_ACL_HARDENING=1'
+const windowsServiceName = 'PerzikeService'
+const windowsServiceNameCandidates = [windowsServiceName, 'Perzike Service']
+const skipCoreAclHardeningEnv = 'PERZIKE_SKIP_CORE_ACL_HARDENING=1'
+const skipCoreAclHardeningEnvCandidates = [
+  skipCoreAclHardeningEnv,
+  'SPARKLE_SKIP_CORE_ACL_HARDENING=1'
+]
 type WindowsServiceState = 'running' | 'stopped' | 'paused' | 'not-installed' | 'unknown'
 
 function parseLegacyServiceAuth(value: string): ServiceAuthSecret | null {
@@ -269,7 +273,7 @@ async function getWindowsServiceBinPath(): Promise<{ name: string; binPath: stri
         return { name, binPath }
       }
     } catch {
-      // Try the next historical service name.
+      // Try the display name fallback.
     }
   }
 
@@ -297,7 +301,7 @@ async function getWindowsServiceState(): Promise<WindowsServiceState> {
       }
       return 'unknown'
     } catch {
-      // Try the next historical service name.
+      // Try the display name fallback.
     }
   }
 
@@ -354,7 +358,7 @@ async function isWindowsServiceCoreAclHardeningDisabled(serviceName: string): Pr
       ['query', `HKLM\\SYSTEM\\CurrentControlSet\\Services\\${serviceName}`, '/v', 'Environment'],
       { timeout: 5000 }
     )
-    return stdout.includes(skipCoreAclHardeningEnv)
+    return skipCoreAclHardeningEnvCandidates.some((env) => stdout.includes(env))
   } catch {
     return false
   }

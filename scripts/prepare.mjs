@@ -8,6 +8,8 @@ import { execFileSync, execSync } from 'child_process'
 
 const cwd = process.cwd()
 const TEMP_DIR = path.join(cwd, 'node_modules/.temp')
+const PERZIKE_SERVICE_REPO = 'https://github.com/Oranjekop/perzike-service'
+const PERZIKE_RUN_REPO = 'https://github.com/Oranjekop/perzike-run'
 let arch = process.arch
 const platform = process.platform
 if (process.argv.slice(2).length !== 0) {
@@ -314,14 +316,14 @@ const resolveEnableLoopback = () =>
   })
 const resolvePerzikeService = () => {
   const map = {
-    'win32-x64': 'sparkle-service-windows-amd64-v3',
-    'win32-ia32': 'sparkle-service-windows-386',
-    'win32-arm64': 'sparkle-service-windows-arm64',
-    'darwin-x64': 'sparkle-service-darwin-amd64-v3',
-    'darwin-arm64': 'sparkle-service-darwin-arm64',
-    'linux-x64': 'sparkle-service-linux-amd64-v3',
-    'linux-arm64': 'sparkle-service-linux-arm64',
-    'linux-loong64': 'sparkle-service-linux-loong64-abi2'
+    'win32-x64': 'perzike-service-windows-amd64-v3',
+    'win32-ia32': 'perzike-service-windows-386',
+    'win32-arm64': 'perzike-service-windows-arm64',
+    'darwin-x64': 'perzike-service-darwin-amd64-v3',
+    'darwin-arm64': 'perzike-service-darwin-arm64',
+    'linux-x64': 'perzike-service-linux-amd64-v3',
+    'linux-arm64': 'perzike-service-linux-arm64',
+    'linux-loong64': 'perzike-service-linux-loong64-abi2'
   }
   if (!map[`${platform}-${arch}`]) {
     throw new Error(`unsupported platform "${platform}-${arch}"`)
@@ -331,14 +333,14 @@ const resolvePerzikeService = () => {
 
   return resolveResource({
     file: `perzike-service${ext}`,
-    downloadURL: `https://github.com/xishang0128/sparkle-service/releases/download/pre-release/${base}${ext}`,
+    downloadURL: `${PERZIKE_SERVICE_REPO}/releases/download/pre-release/${base}${ext}`,
     needExecutable: true
   })
 }
 const resolveRunner = () =>
   resolveResource({
     file: 'perzike-run.exe',
-    downloadURL: `https://github.com/xishang0128/sparkle-run/releases/download/${arch}/sparkle-run.exe`
+    downloadURL: `${PERZIKE_RUN_REPO}/releases/download/${arch}/perzike-run.exe`
   })
 
 const resolveMonitor = async () => {
@@ -348,7 +350,7 @@ const resolveMonitor = async () => {
     fs.mkdirSync(tempDir, { recursive: true })
   }
   await downloadFile(
-    `https://github.com/xishang0128/sparkle-run/releases/download/monitor/${arch}.zip`,
+    `${PERZIKE_RUN_REPO}/releases/download/monitor/${arch}.zip`,
     tempZip
   )
   const zip = new AdmZip(tempZip)
