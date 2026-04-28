@@ -2,7 +2,7 @@ import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { mihomoCorePath } from '../utils/dirs'
 import { checkCorePermissionPathSync, hasSetuidPermission } from './permission-check'
-import { createElevateTaskSync } from '../sys/misc'
+import { createElevateTask } from '../sys/misc'
 
 type CoreName = 'mihomo' | 'mihomo-alpha'
 
@@ -30,7 +30,7 @@ function isUserCancelledError(error: unknown): boolean {
 export async function manualGrantCorePermition(cores?: CoreName[]): Promise<void> {
   if (process.platform === 'win32') {
     try {
-      createElevateTaskSync()
+      await createElevateTask()
     } catch (error) {
       if (isUserCancelledError(error)) {
         throw new UserCancelledError()

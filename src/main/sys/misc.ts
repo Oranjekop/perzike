@@ -14,6 +14,7 @@ import {
   taskDir
 } from '../utils/dirs'
 import { copyFileSync, writeFileSync } from 'fs'
+import { execWithElevation } from '../utils/elevation'
 
 export function getFilePath(ext: string[]): string[] | undefined {
   return dialog.showOpenDialogSync({
@@ -105,24 +106,41 @@ const elevateTaskXml = `<?xml version="1.0" encoding="UTF-16"?>
 </Task>
 `
 
-export function createElevateTaskSync(): void {
+function writeElevateTaskFiles(): string {
   const taskFilePath = path.join(taskDir(), `perzike-run.xml`)
   writeFileSync(taskFilePath, Buffer.from(`\ufeff${elevateTaskXml}`, 'utf-16le'))
   copyFileSync(
     path.join(resourcesFilesDir(), 'perzike-run.exe'),
     path.join(taskDir(), 'perzike-run.exe')
   )
+  return taskFilePath
+}
+
+function schtasksPath(): string {
+  return path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'schtasks.exe')
+}
+
+export function createElevateTaskSync(): void {
+  const taskFilePath = writeElevateTaskFiles()
   execSync(
     `%SystemRoot%\\System32\\schtasks.exe /create /tn "perzike-run" /xml "${taskFilePath}" /f`
   )
 }
 
+export async function createElevateTask(): Promise<void> {
+  const taskFilePath = writeElevateTaskFiles()
+  await execWithElevation(schtasksPath(), [
+    '/create',
+    '/tn',
+    'perzike-run',
+    '/xml',
+    taskFilePath,
+    '/f'
+  ])
+}
+
 export async function deleteElevateTask(): Promise<void> {
-  try {
-    execSync(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "perzike-run" /f`)
-  } catch {
-    // ignore
-  }
+  await execWithElevation(schtasksPath(), ['/delete', '/tn', 'perzike-run', '/f'])
 }
 
 export async function checkElevateTask(): Promise<boolean> {

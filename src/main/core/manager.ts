@@ -19,6 +19,7 @@ import {
   stopMihomoLogs,
   stopMihomoMemory,
   patchMihomoConfig,
+  mihomoConfig,
   mihomoGroups
 } from './mihomoApi'
 import { readFile, rm, writeFile } from 'fs/promises'
@@ -43,6 +44,11 @@ import {
 } from '../service/api'
 import { repairBundledCoreAccess, startService as startPerzikeService } from '../service/manager'
 import { appendAppLog, createLogWritable, setMihomoLogSource } from '../utils/log'
+import {
+  isRunningAsAdmin,
+  startProcessWithElevation,
+  stopProcessWithElevation
+} from '../utils/elevation'
 import { createCoreHookWaiter, createCoreStartupHook } from './startupHook'
 import { stopChildProcess } from './process-control'
 import {
@@ -73,6 +79,8 @@ const ctlParam = process.platform === 'win32' ? '-ext-ctl-pipe' : '-ext-ctl-unix
 
 let child: ChildProcess
 let retry = 10
+let elevatedCorePid: number | null = null
+let activeCorePermissionMode: NonNullable<AppConfig['corePermissionMode']> | null = null
 let serviceCoreStreamsRestartTimer: NodeJS.Timeout | null = null
 let unsubscribeServiceCoreEvents: (() => void) | null = null
 let unsubscribeServiceCoreEventStream: (() => void) | null = null
@@ -135,6 +143,28 @@ async function waitForMihomoReady(): Promise<void> {
   }
 }
 
+async function waitForDirectCoreReadyByPolling(logLevel?: LogLevel): Promise<Promise<void>[]> {
+  const maxRetries = 60
+  const retryInterval = 250
+  let lastError: unknown = null
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await mihomoConfig()
+      await waitForMihomoReady()
+      await startMihomoApiStreams()
+      return [completeCoreInitialization(logLevel)]
+    } catch (error) {
+      lastError = error
+      await new Promise((resolve) => setTimeout(resolve, retryInterval))
+    }
+  }
+
+  throw new Error(
+    `等待提权内核控制器启动超时：${lastError instanceof Error ? lastError.message : String(lastError)}`
+  )
+}
+
 async function waitForServiceCoreConnection(
   initialError: unknown
 ): Promise<ServiceCoreConnectionProbe> {
@@ -184,6 +214,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   const { 'log-level': logLevel, tun } = controlledMihomoConfig
   const { current } = await getProfileConfig()
   const useServiceCore = corePermissionMode === 'service' && !detached
+  const launchCorePermissionMode = useServiceCore ? 'service' : 'elevated'
   const effectiveCoreStartupMode = process.platform === 'win32' ? 'log' : coreStartupMode
 
   if (process.platform === 'win32' && (core === 'mihomo' || core === 'mihomo-alpha')) {
@@ -225,6 +256,9 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   }
   if (!serviceCoreRunning) {
     await stopCore()
+  }
+  if (!useServiceCore && process.platform === 'win32') {
+    await stopInactiveServiceCore()
   }
   setMihomoLogSource('out')
   if (tun?.enable && autoSetDNSMode !== 'none') {
@@ -300,11 +334,23 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
       serviceCoreStartupActive = false
     }
     await ensureServiceCoreStreamsStarted()
+    activeCorePermissionMode = launchCorePermissionMode
     initialized = true
     return [completeCoreInitialization(logLevel)]
   }
 
   const providerTracker = createProviderInitializationTracker(await getRuntimeConfig())
+  const shouldStartElevatedCoreProcess =
+    process.platform === 'win32' && !detached && !(await isRunningAsAdmin())
+
+  if (shouldStartElevatedCoreProcess) {
+    await appendAppLog(`[Manager]: Core permission mode: elevated core process\n`)
+    elevatedCorePid = await startProcessWithElevation(corePath, spawnArgs)
+    activeCorePermissionMode = launchCorePermissionMode
+    await writeFile(path.join(dataDir(), 'core.pid'), elevatedCorePid.toString())
+    return waitForDirectCoreReadyByPolling(logLevel)
+  }
+
   const stdout = createLogWritable('core', 'info')
   const stderr = createLogWritable('core', 'error')
 
@@ -313,6 +359,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     stdio: detached ? 'ignore' : undefined,
     env: env
   })
+  activeCorePermissionMode = launchCorePermissionMode
   hookWaiter?.attachProcess(child)
   if (child.pid) {
     try {
@@ -444,7 +491,8 @@ export async function stopCore(force = false): Promise<void> {
   }
 
   const { corePermissionMode = 'elevated' } = await getAppConfig()
-  if (corePermissionMode === 'service') {
+  const stopCorePermissionMode = activeCorePermissionMode ?? corePermissionMode
+  if (stopCorePermissionMode === 'service') {
     try {
       await stopServiceCore()
     } catch (error) {
@@ -467,20 +515,51 @@ export async function stopCore(force = false): Promise<void> {
     const pid = parseInt(pidString.trim())
     if (!isNaN(pid)) {
       try {
-        process.kill(pid, 0)
-        process.kill(pid, 'SIGINT')
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        if (process.platform === 'win32' && pid === elevatedCorePid) {
+          await stopProcessWithElevation(pid)
+        } else {
+          process.kill(pid, 0)
+          process.kill(pid, 'SIGINT')
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+        }
         try {
           process.kill(pid, 0)
-          process.kill(pid, 'SIGKILL')
+          if (process.platform === 'win32') {
+            await stopProcessWithElevation(pid)
+          } else {
+            process.kill(pid, 'SIGKILL')
+          }
         } catch {
           // ignore
         }
-      } catch {
-        // ignore
+      } catch (error) {
+        if (process.platform === 'win32') {
+          try {
+            await stopProcessWithElevation(pid)
+          } catch (elevatedStopError) {
+            await appendAppLog(
+              `[Manager]: stop elevated core pid ${pid} failed, ${elevatedStopError}; original error: ${error}\n`
+            )
+          }
+        }
       }
     }
     await rm(path.join(dataDir(), 'core.pid')).catch(() => {})
+  }
+  elevatedCorePid = null
+  activeCorePermissionMode = null
+}
+
+async function stopInactiveServiceCore(): Promise<void> {
+  try {
+    await stopServiceCore()
+  } catch (error) {
+    if (!isServiceConnectionError(error)) {
+      await appendAppLog(`[Manager]: stop inactive service core failed, ${error}\n`)
+    }
+  } finally {
+    stopServiceCoreEventStream()
+    releaseServiceCoreEventHandler()
   }
 }
 

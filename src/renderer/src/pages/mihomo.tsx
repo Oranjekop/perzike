@@ -80,6 +80,12 @@ const Mihomo: React.FC = () => {
     handleConfigChangeWithRestart('core', newCore)
   }
 
+  const switchPermissionMode = async (mode: 'elevated' | 'service'): Promise<void> => {
+    await patchAppConfig({ corePermissionMode: mode })
+    await restartCore()
+    PubSub.publish('mihomo-core-changed')
+  }
+
   const handlePermissionModeChange = async (mode: 'elevated' | 'service'): Promise<void> => {
     if (permissionModeChangingRef.current || mode === corePermissionMode) {
       return
@@ -88,9 +94,7 @@ const Mihomo: React.FC = () => {
     permissionModeChangingRef.current = true
     setPermissionModeChanging(true)
     try {
-      await patchAppConfig({ corePermissionMode: mode })
-      await restartCore()
-      PubSub.publish('mihomo-core-changed')
+      await switchPermissionMode(mode)
     } catch (e) {
       alert(e)
     } finally {
@@ -134,9 +138,7 @@ const Mihomo: React.FC = () => {
           onUninstall={async () => {
             await uninstallService()
             if (corePermissionMode === 'service') {
-              await patchAppConfig({ corePermissionMode: 'elevated' })
-              await restartCore()
-              PubSub.publish('mihomo-core-changed')
+              await switchPermissionMode('elevated')
             }
           }}
         />
