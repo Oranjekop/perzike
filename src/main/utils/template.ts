@@ -23,6 +23,7 @@ export const defaultConfig: AppConfig = {
   autoCloseConnection: true,
   closeMode: 'all',
   showGlobalByMode: false,
+  showHiddenProxyGroups: false,
   controlDns: true,
   controlSniff: true,
   hosts: [],

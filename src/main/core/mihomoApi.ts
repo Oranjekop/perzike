@@ -149,29 +149,35 @@ export const mihomoProxies = async (): Promise<ControllerProxies> => {
 
 export const mihomoGroups = async (): Promise<ControllerMixedGroup[]> => {
   const { mode = 'rule' } = await getControledMihomoConfig()
+  const { showHiddenProxyGroups = false } = await getAppConfig()
   if (mode === 'direct') return []
   const proxies = await mihomoProxies()
   const runtime = await getRuntimeConfig()
   const groups: ControllerMixedGroup[] = []
+  const shouldShowGroup = (group: ControllerGroupDetail): boolean =>
+    showHiddenProxyGroups || !group.hidden
   runtime?.['proxy-groups']?.forEach((group: { name: string; url?: string }) => {
     const { name, url } = group
-    if (proxies.proxies[name] && 'all' in proxies.proxies[name] && !proxies.proxies[name].hidden) {
+    if (proxies.proxies[name] && 'all' in proxies.proxies[name]) {
       const newGroup = proxies.proxies[name]
+      if (!shouldShowGroup(newGroup)) return
       newGroup.testUrl = url
       const newAll = newGroup.all.map((name) => proxies.proxies[name])
       groups.push({ ...newGroup, all: newAll })
     }
   })
   if (!groups.find((group) => group.name === 'GLOBAL')) {
-    const newGlobal = proxies.proxies['GLOBAL'] as ControllerGroupDetail
-    if (!newGlobal.hidden) {
+    const newGlobal = proxies.proxies['GLOBAL']
+    if (newGlobal && 'all' in newGlobal && shouldShowGroup(newGlobal)) {
       const newAll = newGlobal.all.map((name) => proxies.proxies[name])
       groups.push({ ...newGlobal, all: newAll })
     }
   }
   if (mode === 'global') {
     const global = groups.findIndex((group) => group.name === 'GLOBAL')
-    groups.unshift(groups.splice(global, 1)[0])
+    if (global > 0) {
+      groups.unshift(groups.splice(global, 1)[0])
+    }
   }
   return groups
 }

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, ReactNode } from 'react'
 import useSWR from 'swr'
 import { mihomoGroups } from '@renderer/utils/ipc'
+import { useAppConfig } from './use-app-config'
 
 interface GroupsContextType {
   groups: ControllerMixedGroup[] | undefined
@@ -10,23 +11,31 @@ interface GroupsContextType {
 const GroupsContext = createContext<GroupsContextType | undefined>(undefined)
 
 export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { data: groups, mutate } = useSWR<ControllerMixedGroup[]>('mihomoGroups', mihomoGroups, {
-    errorRetryInterval: 200,
-    errorRetryCount: 10
-  })
+  const { appConfig } = useAppConfig()
+  const { showHiddenProxyGroups = false } = appConfig || {}
+  const { data: groups, mutate } = useSWR<ControllerMixedGroup[]>(
+    ['mihomoGroups', showHiddenProxyGroups],
+    () => mihomoGroups(),
+    {
+      errorRetryInterval: 200,
+      errorRetryCount: 10
+    }
+  )
 
   React.useEffect(() => {
-    window.electron.ipcRenderer.on('groupsUpdated', () => {
+    const handleGroupsUpdated = (): void => {
       mutate()
-    })
-    window.electron.ipcRenderer.on('core-started', () => {
-      mutate()
-    })
-    return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('groupsUpdated')
-      window.electron.ipcRenderer.removeAllListeners('core-started')
     }
-  }, [])
+    const handleCoreStarted = (): void => {
+      mutate()
+    }
+    const unsubGroupsUpdated = window.electron.ipcRenderer.on('groupsUpdated', handleGroupsUpdated)
+    const unsubCoreStarted = window.electron.ipcRenderer.on('core-started', handleCoreStarted)
+    return (): void => {
+      unsubGroupsUpdated()
+      unsubCoreStarted()
+    }
+  }, [mutate])
 
   return <GroupsContext.Provider value={{ groups, mutate }}>{children}</GroupsContext.Provider>
 }

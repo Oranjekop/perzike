@@ -4,6 +4,7 @@ import { IoRefresh, IoClose, IoCheckmarkCircle } from 'react-icons/io5'
 import { useGroups } from './hooks/use-groups'
 import { mihomoChangeProxy, mihomoGroupDelay, mihomoCloseConnections } from './utils/ipc'
 import { useAppConfig } from './hooks/use-app-config'
+import { useControledMihomoConfig } from './hooks/use-controled-mihomo-config'
 import { calcTraffic } from './utils/calc'
 import MihomoIcon from './components/base/mihomo-icon'
 
@@ -15,7 +16,9 @@ interface TrafficData {
 const TrayMenuApp: React.FC = () => {
   const { groups, mutate } = useGroups()
   const { appConfig } = useAppConfig()
-  const { autoCloseConnection } = appConfig || {}
+  const { controledMihomoConfig } = useControledMihomoConfig()
+  const { autoCloseConnection, showGlobalByMode = false } = appConfig || {}
+  const { mode = 'rule' } = controledMihomoConfig || {}
 
   const [traffic, setTraffic] = useState<TrafficData>({ up: 0, down: 0 })
   const [testingGroup, setTestingGroup] = useState<string | null>(null)
@@ -90,10 +93,17 @@ const TrayMenuApp: React.FC = () => {
     return proxy.history[proxy.history.length - 1].delay
   }
 
-  const defaultExpandedKeys = useMemo(() => {
+  const visibleGroups = useMemo(() => {
     if (!groups) return []
-    return groups.slice(0, 3).map((g) => g.name)
-  }, [groups])
+    if (!showGlobalByMode) return groups
+    if (mode === 'global') return groups.filter((group) => group.name === 'GLOBAL')
+    if (mode === 'rule') return groups.filter((group) => group.name !== 'GLOBAL')
+    return groups
+  }, [groups, mode, showGlobalByMode])
+
+  const defaultExpandedKeys = useMemo(() => {
+    return visibleGroups.slice(0, 3).map((g) => g.name)
+  }, [visibleGroups])
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-content1 rounded-xl border border-divider">
@@ -138,7 +148,7 @@ const TrayMenuApp: React.FC = () => {
       </div>
 
       <ScrollShadow className="flex-1 overflow-y-auto">
-        {!groups || groups.length === 0 ? (
+        {visibleGroups.length === 0 ? (
           <div className="flex items-center justify-center h-full text-default-400 text-sm">
             暂无数据
           </div>
@@ -154,7 +164,7 @@ const TrayMenuApp: React.FC = () => {
               content: 'pt-0 pb-2'
             }}
           >
-            {groups.map((group) => (
+            {visibleGroups.map((group) => (
               <AccordionItem
                 key={group.name}
                 aria-label={group.name}

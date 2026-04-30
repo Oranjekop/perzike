@@ -88,6 +88,7 @@ interface AppConfig {
   autoCloseConnection: boolean
   closeMode: 'all' | 'group'
   showGlobalByMode?: boolean
+  showHiddenProxyGroups?: boolean
   sysProxy: ISysProxyConfig
   saveLogs?: boolean
   maxLogDays: number

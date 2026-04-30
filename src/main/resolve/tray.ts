@@ -112,6 +112,8 @@ async function showCustomTray(): Promise<void> {
   }
 
   positionCustomTrayWindow(customTrayWindow)
+  customTrayWindow.webContents.send('appConfigUpdated')
+  customTrayWindow.webContents.send('groupsUpdated')
   customTrayWindow.show()
   customTrayWindow.focus()
 }
