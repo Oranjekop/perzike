@@ -51,6 +51,7 @@ mac:
   notarize: false
   artifactName: ${name}-macos-${version}-${arch}.${ext}
 pkg:
+  scripts: pkg-scripts
   allowAnywhere: false
   allowCurrentUserHome: false
   # background:

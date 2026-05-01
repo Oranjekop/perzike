@@ -1,6 +1,13 @@
 #!/bin/sh
 
 APP_PATH="$2/Perzike.app"
+CLEANED_APP_DIR="$(mktemp -d /tmp/perzike-app.XXXXXX)"
+CLEANED_APP_PATH="$CLEANED_APP_DIR/Perzike.app"
+
+ditto --norsrc --noextattr "$APP_PATH" "$CLEANED_APP_PATH"
+rm -rf "$APP_PATH"
+mv "$CLEANED_APP_PATH" "$APP_PATH"
+rmdir "$CLEANED_APP_DIR"
 
 chown root:admin "$APP_PATH/Contents/Resources/sidecar/mihomo"
 chown root:admin "$APP_PATH/Contents/Resources/sidecar/mihomo-alpha"
