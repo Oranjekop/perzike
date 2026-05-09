@@ -550,6 +550,7 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
         windowShown = true
         mainWindow?.show()
         mainWindow?.focusOnWebView()
+        mainWindow?.focus()
       } else {
         await scheduleLightweightMode()
       }
@@ -630,12 +631,14 @@ export async function showMainWindow(): Promise<void> {
     windowShown = true
     mainWindow.show()
     mainWindow.focusOnWebView()
+    mainWindow.focus()
   } else {
     await createWindow()
     if (mainWindow !== null) {
       windowShown = true
       ;(mainWindow as BrowserWindow).show()
       ;(mainWindow as BrowserWindow).focusOnWebView()
+      ;(mainWindow as BrowserWindow).focus()
     }
   }
 }

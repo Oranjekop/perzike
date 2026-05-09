@@ -24,6 +24,10 @@
   color: hsl(var(--heroui-foreground)) !important;
 }
 
+.driver-active .app-drag {
+  pointer-events: auto;
+}
+
 .driver-popover-progress-text {
   color: hsl(var(--heroui-default-500)) !important;
 }
