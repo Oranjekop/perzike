@@ -9,7 +9,7 @@ let changelog = existsSync(releaseNotesFile)
   : `## ${version}\n\n### 更新内容\n\n- 发布 ${version}\n`
 const refTag = process.env.RELEASE_TAG || process.env.GITHUB_REF_NAME
 const releaseTag = refTag === version || refTag === `v${version}` ? refTag : version
-const downloadUrl = `https://github.com/Oranjekop/perzike/releases/download/${releaseTag}`
+const downloadUrl = `https://github.com/Oranjekop/Perzike/releases/download/${releaseTag}`
 const latest = {
   version,
   changelog

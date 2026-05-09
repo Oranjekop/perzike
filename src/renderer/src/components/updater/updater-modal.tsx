@@ -41,8 +41,8 @@ const UpdaterModal: React.FC<Props> = (props) => {
 
   const isDownloading = updateStatus?.downloading || downloading
   const releaseUrl = version.includes('beta')
-    ? 'https://github.com/Oranjekop/perzike/releases/tag/pre-release'
-    : `https://github.com/Oranjekop/perzike/releases/tag/${version}`
+    ? 'https://github.com/Oranjekop/Perzike/releases/tag/pre-release'
+    : `https://github.com/Oranjekop/Perzike/releases/tag/${version}`
 
   return (
     <Modal>

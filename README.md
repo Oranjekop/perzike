@@ -3,8 +3,8 @@
 <h3 align="center">Another <a href="https://github.com/MetaCubeX/mihomo">Mihomo</a> GUI</h3>
 
 <p align="center">
-  <a href="https://github.com/Oranjekop/perzike/releases">
-    <img src="https://img.shields.io/github/release/Oranjekop/perzike/all.svg">
+  <a href="https://github.com/Oranjekop/Perzike/releases">
+    <img src="https://img.shields.io/github/release/Oranjekop/Perzike/all.svg">
   </a>
 </p>
 
@@ -55,7 +55,7 @@ Perzike 基于 Electron + React + TypeScript 构建
 1. **克隆项目**
 
 ```bash
-git clone https://github.com/Oranjekop/perzike.git
+git clone https://github.com/Oranjekop/Perzike.git
 cd perzike
 ```
 

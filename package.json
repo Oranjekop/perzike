@@ -7,7 +7,7 @@
     "name": "Oranjekop",
     "email": "123@gmail.com"
   },
-  "homepage": "https://github.com/Oranjekop/perzike",
+  "homepage": "https://github.com/Oranjekop/Perzike",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",

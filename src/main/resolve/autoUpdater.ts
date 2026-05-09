@@ -95,7 +95,7 @@ async function fetchReleaseByTag(
 ): Promise<GithubRelease | undefined> {
   try {
     const res = await axios.get<GithubRelease>(
-      `https://api.github.com/repos/Oranjekop/perzike/releases/tags/${tag}`,
+      `https://api.github.com/repos/Oranjekop/Perzike/releases/tags/${tag}`,
       createAxiosConfig(mixedPort)
     )
     return res.data
@@ -109,7 +109,7 @@ async function fetchReleaseByTag(
 
 async function fetchReleases(mixedPort: number): Promise<GithubRelease[]> {
   const res = await axios.get<GithubRelease[]>(
-    'https://api.github.com/repos/Oranjekop/perzike/releases?per_page=20',
+    'https://api.github.com/repos/Oranjekop/Perzike/releases?per_page=20',
     createAxiosConfig(mixedPort)
   )
   return res.data
