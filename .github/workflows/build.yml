@@ -1,20 +1,9 @@
 name: Build
 permissions: write-all
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Tag version to release'
-        required: false
   push:
-    branches:
-      - master
     tags:
       - '*'
-    paths-ignore:
-      - 'README.md'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/workflows/issues.yml'
 
 jobs:
   build:
@@ -83,41 +72,18 @@ jobs:
       - name: Determine and Update Version
         shell: bash
         run: |
-          GIT_COMMIT_HASH=$(git rev-parse --short HEAD)
-          VERSION=$(jq -r '.version' package.json)
+          INPUT_VERSION="${GITHUB_REF_NAME}"
+          CLEAN_VERSION=$(echo "$INPUT_VERSION" | sed 's/^v//')
 
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            INPUT_VERSION="${{ github.event.inputs.version }}"
-            CLEAN_VERSION=$(echo "$INPUT_VERSION" | sed 's/^v//')
+          if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "Invalid version format: $INPUT_VERSION"
+            exit 1
+          fi
 
-            if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
-              echo "Invalid version format: $INPUT_VERSION"
-              exit 1
-            fi
-
-            if [[ "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
-              RELEASE_VERSION="${CLEAN_VERSION}.0"
-            else
-              RELEASE_VERSION="$CLEAN_VERSION"
-            fi
-          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            INPUT_VERSION="${GITHUB_REF_NAME}"
-            CLEAN_VERSION=$(echo "$INPUT_VERSION" | sed 's/^v//')
-
-            if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
-              echo "Invalid version format: $INPUT_VERSION"
-              exit 1
-            fi
-
-            if [[ "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
-              RELEASE_VERSION="${CLEAN_VERSION}.0"
-            else
-              RELEASE_VERSION="$CLEAN_VERSION"
-            fi
+          if [[ "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            RELEASE_VERSION="${CLEAN_VERSION}.0"
           else
-            BASE_VERSION=$(echo $VERSION | awk -F. '{print $1"."$2"."$3+1}')
-            VERSION_PREFIX=${VERSION_PREFIX:-beta}
-            RELEASE_VERSION="${BASE_VERSION}-${VERSION_PREFIX}-${GIT_COMMIT_HASH}"
+            RELEASE_VERSION="$CLEAN_VERSION"
           fi
 
           jq --arg version "$RELEASE_VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
@@ -206,7 +172,6 @@ jobs:
             release-notes.md
 
   release:
-    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.version != '')
     needs: [build]
     runs-on: ubuntu-latest
     steps:
@@ -220,12 +185,7 @@ jobs:
         id: release_meta
         shell: bash
         run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            RAW_TAG="${{ github.event.inputs.version }}"
-          else
-            RAW_TAG="${GITHUB_REF_NAME}"
-          fi
-
+          RAW_TAG="${GITHUB_REF_NAME}"
           TAG_NAME=$(echo "$RAW_TAG" | sed 's#^refs/tags/##')
           CLEAN_VERSION=$(echo "$TAG_NAME" | sed 's/^v//')
 
@@ -246,14 +206,6 @@ jobs:
       - name: Update Version
         run: |
           jq --arg version "${{ steps.release_meta.outputs.package_version }}" '.version = $version' package.json > tmp.json && mv tmp.json package.json
-
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            git config --global user.name "github-actions[bot]"
-            git add package.json
-            git commit -m "update version to ${{ steps.release_meta.outputs.package_version }}" || true
-            git push || true
-          fi
 
       - name: Generate Release Notes
         env:
