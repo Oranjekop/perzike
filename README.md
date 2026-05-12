@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/Oranjekop/Perzike/releases">
-    <img src="https://img.shields.io/github/release/Oranjekop/Perzike/all.svg">
+    <img alt="GitHub release" src="https://img.shields.io/github/v/release/Oranjekop/Perzike?include_prereleases">
   </a>
 </p>
 
